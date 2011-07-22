@@ -1,0 +1,11 @@
+1310325436070	Delete elements
+1310554754297	Rename local variable 'frameIndex'
+1310554761743	Rename local variable 'frameIndex'
+1310554774885	Rename field 'frameIndex'
+1310555704360	Rename local variable 'frameBounds'
+1310555710890	Rename local variable 'frameBounds'
+1310562831306	Rename field 'position'
+1310564430113	Rename enum constant 'Clerk'
+1310564437775	Rename enum constant 'Advert'
+1310564451290	Rename enum constant 'Security'
+1310656174382	Rename field 'bounds'

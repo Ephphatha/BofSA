@@ -1,0 +1,10 @@
+#Mon Apr 04 18:16:48 EST 2011
+Single-line=comment\=0,0,0,0,0,199,221,12
+Type=0,0,0,0,0,210,82,82
+Multi-line=comment\=0,0,0,0,0,199,221,12
+Single=quoted string\=0,0,0,0,0,255,198,0
+Keyword=0,0,0,0,0,255,255,255
+Others=0,0,0,0,0,216,216,216
+Identifier=0,0,0,0,0,255,255,255
+eclipse.preferences.version=1
+Double=quoted string\=0,0,0,0,0,255,198,0
