@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<bofsa>
+  <creep type="Customer" speed="1.0" basehp="100" minvalue="50" maxvalue="10000" />
+  <creep type="Auditor" speed="2.5" basehp="1000" />
+  <creep type="Hobo" speed="0.5" basehp="20" damage="10" />
+</bofsa>

@@ -172,7 +172,7 @@ public class InGameState implements GameState, CreepManager {
     }
     
     if (input.isKeyPressed(Input.KEY_ESCAPE)) {
-      game.enterState(STDGame.States.MAINMENU.ordinal());
+      game.enterState(BofSA.States.MAINMENU.ordinal());
     }
     
     if (this.map != null) {
