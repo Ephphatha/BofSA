@@ -23,49 +23,49 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.state.StateBasedGame;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
 
 /**
  * @author ephphatha
  *
  */
-public class BofSA extends StateBasedGame {
+public class WorkerThread extends Thread implements Executor {
 
-  protected enum States {
-    MAINMENU,
-    GAME
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    System.out.println("Test");
-    try {
-      AppGameContainer app = new AppGameContainer(new BofSA());
-      app.setDisplayMode(800, 600, false);
-      app.start();
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
-  }
+  protected Scheduler scheduler;
   
-  public BofSA() {
-    super("Bank of SA");
+  protected Queue<Runnable> tasks;
+  
+  /**
+   * 
+   */
+  public WorkerThread(Scheduler s) {
+    this.scheduler = s;
     
-    this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameState(States.GAME.ordinal()));
-    
-    this.enterState(States.MAINMENU.ordinal());
+    this.tasks = new ConcurrentLinkedQueue<Runnable>();
   }
 
-  @Override
-  public void initStatesList(GameContainer gc) throws SlickException {
-    for (int i = 0; i < this.getStateCount(); ++i) {
-      this.getState(i).init(gc, this);
+  public void run() {
+    while (!Thread.interrupted()) {
+      if (!this.tasks.isEmpty()) {
+        do {
+          try {
+            Runnable t = this.tasks.poll();
+            t.run();
+            this.scheduler.execute(t);
+          } finally {
+          }
+        } while (!this.tasks.isEmpty());
+        
+        this.scheduler.slice(this);
+      }
+      
+      Thread.yield();
     }
+  }
+
+  public void execute(Runnable r) {
+    this.tasks.add(r);
   }
 }

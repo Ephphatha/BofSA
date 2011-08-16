@@ -23,49 +23,23 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.state.StateBasedGame;
-
 /**
  * @author ephphatha
  *
  */
-public class BofSA extends StateBasedGame {
+public class Switcher implements Runnable {
 
-  protected enum States {
-    MAINMENU,
-    GAME
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    System.out.println("Test");
-    try {
-      AppGameContainer app = new AppGameContainer(new BofSA());
-      app.setDisplayMode(800, 600, false);
-      app.start();
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
-  }
+  protected Behaviour<?> behaviour;
   
-  public BofSA() {
-    super("Bank of SA");
-    
-    this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameState(States.GAME.ordinal()));
-    
-    this.enterState(States.MAINMENU.ordinal());
+  @Override
+  public void run() {
+    this.behaviour.run();
   }
 
-  @Override
-  public void initStatesList(GameContainer gc) throws SlickException {
-    for (int i = 0; i < this.getStateCount(); ++i) {
-      this.getState(i).init(gc, this);
-    }
+  public Behaviour<?> switchTo(Behaviour<?> behaviour) {
+    Behaviour<?> temp = this.behaviour;
+    this.behaviour = behaviour;
+    
+    return temp;
   }
 }

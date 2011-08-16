@@ -23,49 +23,50 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.state.StateBasedGame;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * @author ephphatha
  *
  */
-public class BofSA extends StateBasedGame {
+public class Scheduler implements Executor {
 
-  protected enum States {
-    MAINMENU,
-    GAME
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    System.out.println("Test");
-    try {
-      AppGameContainer app = new AppGameContainer(new BofSA());
-      app.setDisplayMode(800, 600, false);
-      app.start();
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
+  protected Queue<WorkerThread> idleThreads;
+  
+  protected Queue<Runnable> tasks;
+  
+  public Scheduler() {
+    this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
+    this.tasks = new PriorityBlockingQueue<Runnable>();
   }
   
-  public BofSA() {
-    super("Bank of SA");
+  public void slice(WorkerThread worker) {
+
+    Runnable t = this.tasks.poll();
+    while (t != null && !this.idleThreads.isEmpty()) {
+      WorkerThread w = this.idleThreads.poll();
+      
+      if (w != null) {
+        w.setPriority(Thread.NORM_PRIORITY + 1);
+        w.execute(t);
+  
+        t = this.tasks.poll();
+      }
+    }
     
-    this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameState(States.GAME.ordinal()));
-    
-    this.enterState(States.MAINMENU.ordinal());
+    if (t != null) {
+      worker.execute(t);
+    } else {
+      worker.setPriority(Thread.MIN_PRIORITY);
+      this.idleThreads.add(worker);
+    }
   }
 
   @Override
-  public void initStatesList(GameContainer gc) throws SlickException {
-    for (int i = 0; i < this.getStateCount(); ++i) {
-      this.getState(i).init(gc, this);
-    }
+  public void execute(Runnable r) {
+    this.tasks.add(r);
   }
 }

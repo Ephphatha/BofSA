@@ -23,49 +23,31 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.state.StateBasedGame;
-
 /**
  * @author ephphatha
  *
  */
-public class BofSA extends StateBasedGame {
-
-  protected enum States {
-    MAINMENU,
-    GAME
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    System.out.println("Test");
-    try {
-      AppGameContainer app = new AppGameContainer(new BofSA());
-      app.setDisplayMode(800, 600, false);
-      app.start();
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
+public class Signal<T extends Copyable<T>> {
+  protected T writeBuffer;
+  protected T readBuffer;
+  protected T offBuffer;
+  
+  public Signal(T copy1, T copy2, T copy3) {
+    this.readBuffer = copy1;
+    this.offBuffer = copy2;
+    this.writeBuffer = copy3;
   }
   
-  public BofSA() {
-    super("Bank of SA");
+  void write(final T newValue) {
+    this.writeBuffer.copy(newValue);
     
-    this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameState(States.GAME.ordinal()));
-    
-    this.enterState(States.MAINMENU.ordinal());
+    T temp = this.readBuffer;
+    this.readBuffer = this.writeBuffer;
+    this.writeBuffer = this.offBuffer;
+    this.offBuffer = temp;
   }
-
-  @Override
-  public void initStatesList(GameContainer gc) throws SlickException {
-    for (int i = 0; i < this.getStateCount(); ++i) {
-      this.getState(i).init(gc, this);
-    }
+  
+  final T read() {
+    return this.readBuffer;
   }
 }
