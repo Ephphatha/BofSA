@@ -130,14 +130,14 @@ public class Tower {
       offset = 0;
       attributes.setFireRate(10.0f);
       attributes.setRange(4.0f);
-      attributes.setDamage(10.0f);
+      attributes.setDamage(2.0f);
       break;
       
     case ADVERT:
       offset = 4;
       attributes.setFireRate(60.0f);
       attributes.setRange(2.5f);
-      attributes.setDamage(10.0f);
+      attributes.setDamage(2.0f);
       attributes.maxTargets = Integer.MAX_VALUE;
       break;
       
@@ -152,7 +152,7 @@ public class Tower {
       offset = 12;
       attributes.setFireRate(0.0f);
       attributes.setRange(0.0f);
-      attributes.setDamage(100.0f);
+      attributes.setDamage(10.0f);
       break;
     }
 

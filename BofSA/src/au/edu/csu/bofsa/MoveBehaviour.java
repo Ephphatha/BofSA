@@ -23,55 +23,44 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
+public class MoveBehaviour extends Behaviour<CopyableVector2f> {
   
-  protected long lastStartTime;
-  protected long lastEndTime;
+  protected InputSignal<CopyableVector2f> pos;
+  protected InputSignal<CopyableVector2f> vel;
   
-  protected Signal<T> signal;
-  protected List<InputSignal<?>> inputs;
+  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity) {
+    super(targetPosition);
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
+    List<InputSignal<?>> tempList = new ArrayList<InputSignal<?>>();
+    tempList.add(position);
+    tempList.add(velocity);
+    super.addInputs(tempList);
+    
+    this.pos = position;
+    this.vel = velocity;
   }
-  
-  public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
-    this.lastStartTime = System.nanoTime();
-    this.signal = signal;
-    this.lastEndTime = System.nanoTime();
-  }
-  
-  protected void addInputs(List<? extends InputSignal<?>> inputs) {
-    this.inputs.addAll(inputs);
-  }
-  
-  public Signal<T> getSignal() {
-    return this.signal;
-  }
-  
-  public Signal<T> setSignal(Signal<T> signal) {
-    Signal<T> temp = getSignal();
-    this.signal = signal;
-    return temp;
-  }
-  
+
   @Override
-  public void run() {
-    this.lastStartTime = System.nanoTime();
+  protected void doRun() {
+    CopyableVector2f vel = this.vel.read();
+    CopyableVector2f pos = this.pos.read();
     
-    doRun();
+    long lastUpdate = this.pos.getTimeStamp();
+    long current = System.nanoTime();
+    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f);
+    vel.scale(delta);
     
-    this.lastEndTime = System.nanoTime();
+    pos.add(vel);
+    
+    this.signal.write(pos, current);
   }
-  
-  abstract protected void doRun();
+
 }

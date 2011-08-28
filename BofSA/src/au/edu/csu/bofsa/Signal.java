@@ -23,31 +23,34 @@
  */
 package au.edu.csu.bofsa;
 
+
 /**
  * @author ephphatha
  *
  */
-public class Signal<T extends Copyable<T>> {
-  protected T writeBuffer;
-  protected T readBuffer;
-  protected T offBuffer;
+public class Signal<T extends Copyable<T>> implements InputSignal<T> {
+  protected T buffer;
+  protected long timeStamp;
   
-  public Signal(T copy1, T copy2, T copy3) {
-    this.readBuffer = copy1;
-    this.offBuffer = copy2;
-    this.writeBuffer = copy3;
+  public Signal() {
+    this.buffer = null;
+    this.timeStamp = System.nanoTime();
   }
   
-  void write(final T newValue) {
-    this.writeBuffer.copy(newValue);
-    
-    T temp = this.readBuffer;
-    this.readBuffer = this.writeBuffer;
-    this.writeBuffer = this.offBuffer;
-    this.offBuffer = temp;
+  public void write(final T newValue) {
+    write(newValue, System.nanoTime());
   }
   
-  final T read() {
-    return this.readBuffer;
+  public void write(final T newValue, long timeStamp) {
+    this.buffer.copy(newValue);
+    this.timeStamp = timeStamp;
+  }
+  
+  public final T read() {
+    return this.buffer.copy();
+  }
+  
+  public long getTimeStamp() {
+    return this.timeStamp;
   }
 }

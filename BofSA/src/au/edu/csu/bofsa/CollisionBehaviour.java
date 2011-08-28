@@ -23,55 +23,36 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
-import java.util.List;
-
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
-  
-  protected long lastStartTime;
-  protected long lastEndTime;
-  
-  protected Signal<T> signal;
-  protected List<InputSignal<?>> inputs;
+public class CollisionBehaviour extends Behaviour<CopyableBoolean> {
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
-  }
+  protected InputSignal<CopyableVector2f> object;
+  protected InputSignal<CopyableFloat> radius;
+  protected InputSignal<CopyableVector2f> collider;
   
-  public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
-    this.lastStartTime = System.nanoTime();
-    this.signal = signal;
-    this.lastEndTime = System.nanoTime();
+  public CollisionBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> object, InputSignal<CopyableFloat> radius, InputSignal<CopyableVector2f> collider) {
+    super(signal);
+    
+    this.object = object;
+    this.radius = radius;
+    this.collider = collider;
   }
-  
-  protected void addInputs(List<? extends InputSignal<?>> inputs) {
-    this.inputs.addAll(inputs);
-  }
-  
-  public Signal<T> getSignal() {
-    return this.signal;
-  }
-  
-  public Signal<T> setSignal(Signal<T> signal) {
-    Signal<T> temp = getSignal();
-    this.signal = signal;
-    return temp;
-  }
-  
+
   @Override
-  public void run() {
-    this.lastStartTime = System.nanoTime();
+  protected void doRun() {
+    CopyableVector2f objPos = this.object.read();
+    CopyableVector2f colPos = this.collider.read();
     
-    doRun();
-    
-    this.lastEndTime = System.nanoTime();
+    if (objPos.distanceSquared(colPos) <= Math.pow(this.radius.read().getValue(), 2)) {
+      if (this.signal.read().getValue() == false) {
+        // TODO Generate collision event;
+        this.signal.write(new CopyableBoolean(true));
+      }
+    } else {
+      this.signal.write(new CopyableBoolean(false));
+    }
   }
-  
-  abstract protected void doRun();
 }

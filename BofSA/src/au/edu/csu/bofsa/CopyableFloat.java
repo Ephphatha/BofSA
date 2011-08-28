@@ -23,55 +23,37 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
-import java.util.List;
-
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
-  
-  protected long lastStartTime;
-  protected long lastEndTime;
-  
-  protected Signal<T> signal;
-  protected List<InputSignal<?>> inputs;
+public class CopyableFloat implements Copyable<CopyableFloat> {
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
+  protected float value;
+
+  /**
+   * 
+   */
+  public CopyableFloat() {
+    this.value = 0;
   }
   
-  public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
-    this.lastStartTime = System.nanoTime();
-    this.signal = signal;
-    this.lastEndTime = System.nanoTime();
+  public CopyableFloat(float value) {
+    this.value = value;
   }
-  
-  protected void addInputs(List<? extends InputSignal<?>> inputs) {
-    this.inputs.addAll(inputs);
-  }
-  
-  public Signal<T> getSignal() {
-    return this.signal;
-  }
-  
-  public Signal<T> setSignal(Signal<T> signal) {
-    Signal<T> temp = getSignal();
-    this.signal = signal;
-    return temp;
-  }
-  
+
   @Override
-  public void run() {
-    this.lastStartTime = System.nanoTime();
-    
-    doRun();
-    
-    this.lastEndTime = System.nanoTime();
+  public CopyableFloat copy() {
+    // TODO Auto-generated method stub
+    return new CopyableFloat(this.value);
   }
-  
-  abstract protected void doRun();
+
+  @Override
+  public void copy(CopyableFloat rhs) {
+    this.value = rhs.getValue();
+  }
+
+  public float getValue() {
+    return this.value;
+  }
 }

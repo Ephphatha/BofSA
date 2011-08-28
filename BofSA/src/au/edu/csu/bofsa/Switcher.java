@@ -27,19 +27,19 @@ package au.edu.csu.bofsa;
  * @author ephphatha
  *
  */
-public class Switcher implements Runnable {
+public class Switcher<T extends Copyable<T>> implements Runnable {
 
-  protected Behaviour<?> behaviour;
+  protected Behaviour<T> behaviour;
   
   @Override
   public void run() {
     this.behaviour.run();
   }
 
-  public Behaviour<?> switchTo(Behaviour<?> behaviour) {
-    Behaviour<?> temp = this.behaviour;
+  public Behaviour<T> switchTo(Behaviour<T> behaviour) {
+    Behaviour<T> temp = this.behaviour;
     this.behaviour = behaviour;
-    
+    this.behaviour.setSignal(temp.getSignal());
     return temp;
   }
 }

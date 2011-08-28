@@ -23,55 +23,28 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
-import java.util.List;
+import org.newdawn.slick.geom.Vector2f;
 
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
-  
-  protected long lastStartTime;
-  protected long lastEndTime;
-  
-  protected Signal<T> signal;
-  protected List<InputSignal<?>> inputs;
+public class CopyableVector2f extends Vector2f implements Copyable<CopyableVector2f> {
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
-  }
-  
-  public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
-    this.lastStartTime = System.nanoTime();
-    this.signal = signal;
-    this.lastEndTime = System.nanoTime();
-  }
-  
-  protected void addInputs(List<? extends InputSignal<?>> inputs) {
-    this.inputs.addAll(inputs);
-  }
-  
-  public Signal<T> getSignal() {
-    return this.signal;
-  }
-  
-  public Signal<T> setSignal(Signal<T> signal) {
-    Signal<T> temp = getSignal();
-    this.signal = signal;
-    return temp;
+  public CopyableVector2f(float x, float y) {
+    this.x = x;
+    this.y = y;
   }
   
   @Override
-  public void run() {
-    this.lastStartTime = System.nanoTime();
-    
-    doRun();
-    
-    this.lastEndTime = System.nanoTime();
+  public void copy(CopyableVector2f rhs) {
+    this.x = rhs.x;
+    this.y = rhs.y;
+  }
+
+  @Override
+  public CopyableVector2f copy() {
+    return new CopyableVector2f(this.x, this.y);
   }
   
-  abstract protected void doRun();
 }

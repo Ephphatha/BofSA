@@ -23,55 +23,50 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
-  
-  protected long lastStartTime;
-  protected long lastEndTime;
-  
-  protected Signal<T> signal;
-  protected List<InputSignal<?>> inputs;
+public class VelocityBehaviour extends Behaviour<CopyableVector2f> {
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
+  protected InputSignal<CopyableVector2f> pos;
+  protected InputSignal<CopyableVector2f> goal;
+  protected InputSignal<CopyableFloat> speed;
+  /**
+   * @param signal
+   */
+  public VelocityBehaviour(Signal<CopyableVector2f> velocity, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> goal, InputSignal<CopyableFloat> maxSpeed) {
+    super(velocity);
+
+    List<InputSignal<?>> tempList = new ArrayList<InputSignal<?>>();
+    tempList.add(position);
+    tempList.add(velocity);
+    super.addInputs(tempList);
+    
+    this.pos = position;
+    this.goal = goal;
+    this.speed = maxSpeed;
   }
-  
-  public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
-    this.lastStartTime = System.nanoTime();
-    this.signal = signal;
-    this.lastEndTime = System.nanoTime();
-  }
-  
-  protected void addInputs(List<? extends InputSignal<?>> inputs) {
-    this.inputs.addAll(inputs);
-  }
-  
-  public Signal<T> getSignal() {
-    return this.signal;
-  }
-  
-  public Signal<T> setSignal(Signal<T> signal) {
-    Signal<T> temp = getSignal();
-    this.signal = signal;
-    return temp;
-  }
-  
+
+  /* (non-Javadoc)
+   * @see au.edu.csu.bofsa.Behaviour#doRun()
+   */
   @Override
-  public void run() {
-    this.lastStartTime = System.nanoTime();
+  protected void doRun() {
+    CopyableVector2f vel = this.goal.read();
     
-    doRun();
+    vel.sub(this.pos.read());
     
-    this.lastEndTime = System.nanoTime();
+    float maxSpeed = this.speed.read().getValue();
+    if (vel.lengthSquared() > (maxSpeed * maxSpeed)) {
+      vel.normalise();
+      vel.scale(maxSpeed);
+    }
+    
+    this.signal.write(vel);
   }
-  
-  abstract protected void doRun();
+
 }
