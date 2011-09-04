@@ -47,16 +47,13 @@ public class InGameState implements GameState, CreepManager {
   
   protected GameLevel map;
   
-  Tower.Type selectedTower;
-
-  private List<Tower> towers;
-  private List<Creep> creeps;
-  private Queue<Creep> deadCreeps;
-  private Queue<Creep> newCreeps;
-  
   private float value;
 
   private CreepFactory creepFactory;
+
+  private List<Thread> threads;
+
+  private Scheduler scheduler;
 
   @SuppressWarnings("unused")
   private InGameState() {
@@ -66,15 +63,11 @@ public class InGameState implements GameState, CreepManager {
   public InGameState(int id) {
     this.stateID = id;
 
-    this.towers = new LinkedList<Tower>();
-    this.creeps = new LinkedList<Creep>();
-    this.deadCreeps = new LinkedList<Creep>();
-    this.newCreeps = new LinkedList<Creep>();
+    this.threads = new LinkedList<Thread>();
   }
 
   @Override
   public int getID() {
-    // TODO Auto-generated method stub
     return this.stateID;
   }
 
@@ -85,6 +78,12 @@ public class InGameState implements GameState, CreepManager {
       this.map = new GameLevel("test");
     } catch (SlickException e) {
       e.printStackTrace();
+    }
+    
+    for (int i = 0; i < Runtime.getRuntime().availableProcessors(); ++i) {
+      Thread t = new WorkerThread(this.scheduler);
+      this.threads.add(t);
+      t.start();
     }
     
     this.value = 0.0f;
@@ -100,12 +99,11 @@ public class InGameState implements GameState, CreepManager {
       throws SlickException {
     this.map = null;
 
-    this.towers.clear();
-    this.creeps.clear();
-    this.deadCreeps.clear();
-    this.newCreeps.clear();
+    for (Thread t : this.threads) {
+      t.interrupt();
+    }
     
-    this.selectedTower = null;
+    this.threads.clear();
   }
 
   @Override
@@ -116,11 +114,9 @@ public class InGameState implements GameState, CreepManager {
       
       Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
 
-      for (Creep c : this.creeps) {
-        Vector2f p = c.getPosition();
-        Rectangle r = new Rectangle(p.x * tile.getWidth(), p.y * tile.getHeight(), tile.getWidth(), tile.getHeight());
-        c.draw(g, r);
-      }
+      //for (Creep c : this.creeps) {
+        //c.draw(g, tile);
+      //}
     }
 
     g.drawString("Asset value: " + Float.toString(this.value), 5, 25);
@@ -134,43 +130,6 @@ public class InGameState implements GameState, CreepManager {
     Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
                                           (float) input.getMouseY() / (float) container.getHeight());
     
-    if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON) && this.selectedTower != null) {
-      Vector2f towerPos = new Vector2f((float) Math.floor(relativeInput.x * this.map.getWidth()) + 0.5f,
-                                       (float) Math.floor(relativeInput.y * this.map.getHeight()) + 0.5f);
-      
-      Tower t = this.map.spawnTower(this.selectedTower, towerPos);
-      
-      if (t != null) {
-        this.towers.add(t);
-      }
-    }
-    
-    if (input.isMousePressed(Input.MOUSE_RIGHT_BUTTON)) {
-      this.selectedTower = null;
-    }
-
-    if (input.isKeyPressed(Input.KEY_1)) {
-      this.selectedTower = Tower.Type.CLERK;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_2)) {
-      this.selectedTower = Tower.Type.ADVERT;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_3)) {
-      this.selectedTower = Tower.Type.SECURITY;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_SPACE)) {
-      System.out.println("Spawning a creep.");
-      
-      Vector2f pos = new Vector2f(this.map.getWidth() / 2.0f, this.map.getHeight() / 2.0f);
-      
-      Vector2f goal = new Vector2f(relativeInput.x * this.map.getWidth(), relativeInput.y * this.map.getHeight());
-      
-      this.spawnCreep(Creep.Type.CUSTOMER, pos, null, goal);
-    }
-    
     if (input.isKeyPressed(Input.KEY_ESCAPE)) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
     }
@@ -181,27 +140,7 @@ public class InGameState implements GameState, CreepManager {
     
     // Game logic
     
-    for (Creep c : this.newCreeps) {
-      this.creeps.add(c);
-    }
-    
-    this.newCreeps.clear();
-    
     this.map.update(this, delta / 1000.0f);
-    
-    for (Tower t : this.towers) {
-      t.update(delta / 1000.0f, this.creeps);
-    }
-    
-    for (Creep c : this.creeps) {
-      c.update(this, delta / 1000.0f);
-    }
-    
-    for (Creep c : this.deadCreeps) {
-      this.creeps.remove(c);
-    }
-    
-    this.deadCreeps.clear();
   }
 
   @Override
@@ -338,28 +277,24 @@ public class InGameState implements GameState, CreepManager {
 
   @Override
   public void onDeath(Creep c) {
-    this.deadCreeps.add(c);
-    
     this.value += c.getValue();
+    this.creepPositions.remove(c.getPosition());
   }
 
   @Override
   public void checkpointReached(Creep c) {
-    c.getNextCheckpoint();
   }
 
   @Override
   public void goalReached(Creep c) {
     System.out.println("A creep has reached its goal!");
     
-    this.deadCreeps.add(c);
-    
     this.value -= c.getValue();
   }
 
   @Override
   public void onSpawn(Creep c) {
-    this.newCreeps.add(c);
+    this.creepPositions.add(c.getPosition());
   }
 
   @Override

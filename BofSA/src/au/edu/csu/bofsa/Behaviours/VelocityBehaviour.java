@@ -21,46 +21,57 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import au.edu.csu.bofsa.Behaviour;
+import au.edu.csu.bofsa.CheckPoint;
+import au.edu.csu.bofsa.CopyableFloat;
+import au.edu.csu.bofsa.CopyableVector2f;
+import au.edu.csu.bofsa.InputSignal;
+import au.edu.csu.bofsa.Signal;
 
 /**
  * @author ephphatha
  *
  */
-public class MoveBehaviour extends Behaviour<CopyableVector2f> {
-  
-  protected InputSignal<CopyableVector2f> pos;
-  protected InputSignal<CopyableVector2f> vel;
-  
-  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity) {
-    super(targetPosition);
+public class VelocityBehaviour extends Behaviour<CopyableVector2f>{
 
-    List<InputSignal<?>> tempList = new ArrayList<InputSignal<?>>();
-    tempList.add(position);
-    tempList.add(velocity);
-    super.addInputs(tempList);
+  protected InputSignal<CopyableVector2f> pos;
+  protected InputSignal<CheckPoint> goal;
+  protected InputSignal<CopyableFloat> speed;
+  
+  /**
+   * @param signal
+   */
+  public VelocityBehaviour(Signal<CopyableVector2f> velocity, InputSignal<CopyableVector2f> position, InputSignal<CheckPoint> goal, InputSignal<CopyableFloat> maxSpeed) {
+    super(velocity);
+
+    this.addInput(position);
+    this.addInput(goal);
+    this.addInput(maxSpeed);
     
     this.pos = position;
-    this.vel = velocity;
+    this.goal = goal;
+    this.speed = maxSpeed;
   }
 
+  /* (non-Javadoc)
+   * @see au.edu.csu.bofsa.Behaviour#doRun()
+   */
   @Override
-  protected void doRun() {
-    CopyableVector2f vel = this.vel.read();
-    CopyableVector2f pos = this.pos.read();
+  protected boolean doRun() {
+    CopyableVector2f vel = new CopyableVector2f(this.goal.read().position);
     
-    long lastUpdate = this.pos.getTimeStamp();
-    long current = System.nanoTime();
-    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f);
-    vel.scale(delta);
+    vel.sub(this.pos.read());
     
-    pos.add(vel);
+    float maxSpeed = this.speed.read().getValue();
+    if (vel.lengthSquared() > (maxSpeed * maxSpeed)) {
+      vel.normalise();
+      vel.scale(maxSpeed);
+    }
     
-    this.signal.write(pos, current);
+    this.signal.write(vel);
+    
+    return true;
   }
-
 }

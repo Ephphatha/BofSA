@@ -31,4 +31,6 @@ public interface EventSource<T> {
   public void addSink(EventSink<T> sink);
   
   public void removeSink(EventSink<T> sink);
+  
+  public void notifySinks(Event<T> event);
 }

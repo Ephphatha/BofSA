@@ -35,6 +35,10 @@ public class Event<T> extends EventObject {
   
   public final T value;
   public final long time;
+  
+  public static enum Generic {
+    DEATH
+  }
 
   public Event(Object source, T value, long time) {
     super(source);

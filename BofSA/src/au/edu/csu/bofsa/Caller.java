@@ -23,50 +23,12 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * @author ephphatha
  *
  */
-public class VelocityBehaviour extends Behaviour<CopyableVector2f> {
-
-  protected InputSignal<CopyableVector2f> pos;
-  protected InputSignal<CopyableVector2f> goal;
-  protected InputSignal<CopyableFloat> speed;
-  /**
-   * @param signal
-   */
-  public VelocityBehaviour(Signal<CopyableVector2f> velocity, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> goal, InputSignal<CopyableFloat> maxSpeed) {
-    super(velocity);
-
-    List<InputSignal<?>> tempList = new ArrayList<InputSignal<?>>();
-    tempList.add(position);
-    tempList.add(velocity);
-    super.addInputs(tempList);
-    
-    this.pos = position;
-    this.goal = goal;
-    this.speed = maxSpeed;
-  }
-
-  /* (non-Javadoc)
-   * @see au.edu.csu.bofsa.Behaviour#doRun()
-   */
-  @Override
-  protected void doRun() {
-    CopyableVector2f vel = this.goal.read();
-    
-    vel.sub(this.pos.read());
-    
-    float maxSpeed = this.speed.read().getValue();
-    if (vel.lengthSquared() > (maxSpeed * maxSpeed)) {
-      vel.normalise();
-      vel.scale(maxSpeed);
-    }
-    
-    this.signal.write(vel);
-  }
-
+public interface Caller<T> {
+  public void call(Callable<T> c);
 }

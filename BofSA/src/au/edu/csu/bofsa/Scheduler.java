@@ -24,49 +24,50 @@
 package au.edu.csu.bofsa;
 
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * @author ephphatha
  *
  */
-public class Scheduler implements Executor {
+public class Scheduler implements Caller<Boolean> {
 
   protected Queue<WorkerThread> idleThreads;
   
-  protected Queue<Runnable> tasks;
+  protected Queue<Callable<Boolean>> tasks;
+  protected Queue<Callable<Boolean>> pendingTasks;
   
   public Scheduler() {
     this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
-    this.tasks = new PriorityBlockingQueue<Runnable>();
+    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
+    this.pendingTasks = new PriorityBlockingQueue<Callable<Boolean>>();
   }
   
   public void slice(WorkerThread worker) {
 
-    Runnable t = this.tasks.poll();
+    Callable<Boolean> t = this.tasks.poll();
     while (t != null && !this.idleThreads.isEmpty()) {
       WorkerThread w = this.idleThreads.poll();
       
       if (w != null) {
         w.setPriority(Thread.NORM_PRIORITY + 1);
-        w.execute(t);
+        w.call(t);
   
         t = this.tasks.poll();
       }
     }
     
     if (t != null) {
-      worker.execute(t);
+      worker.call(t);
     } else {
       worker.setPriority(Thread.MIN_PRIORITY);
       this.idleThreads.add(worker);
     }
   }
 
-  @Override
-  public void execute(Runnable r) {
-    this.tasks.add(r);
+  public void call(Callable<Boolean> c) {
+    this.tasks.add(c);
   }
 }

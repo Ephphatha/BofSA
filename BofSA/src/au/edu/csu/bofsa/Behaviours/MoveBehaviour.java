@@ -21,38 +21,47 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
+
+import au.edu.csu.bofsa.Behaviour;
+import au.edu.csu.bofsa.CopyableVector2f;
+import au.edu.csu.bofsa.InputSignal;
+import au.edu.csu.bofsa.Signal;
+
 
 /**
  * @author ephphatha
  *
  */
-public class CollisionBehaviour extends Behaviour<CopyableBoolean> {
-
-  protected InputSignal<CopyableVector2f> object;
-  protected InputSignal<CopyableFloat> radius;
-  protected InputSignal<CopyableVector2f> collider;
+public class MoveBehaviour extends Behaviour<CopyableVector2f> {
   
-  public CollisionBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> object, InputSignal<CopyableFloat> radius, InputSignal<CopyableVector2f> collider) {
-    super(signal);
+  protected InputSignal<CopyableVector2f> pos;
+  protected InputSignal<CopyableVector2f> vel;
+  
+  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity) {
+    super(targetPosition);
+
+    this.addInput(position);
+    this.addInput(velocity);
     
-    this.object = object;
-    this.radius = radius;
-    this.collider = collider;
+    this.pos = position;
+    this.vel = velocity;
   }
 
   @Override
-  protected void doRun() {
-    CopyableVector2f objPos = this.object.read();
-    CopyableVector2f colPos = this.collider.read();
+  protected boolean doRun() {
+    CopyableVector2f vel = this.vel.read();
+    CopyableVector2f pos = this.pos.read();
     
-    if (objPos.distanceSquared(colPos) <= Math.pow(this.radius.read().getValue(), 2)) {
-      if (this.signal.read().getValue() == false) {
-        // TODO Generate collision event;
-        this.signal.write(new CopyableBoolean(true));
-      }
-    } else {
-      this.signal.write(new CopyableBoolean(false));
-    }
+    long lastUpdate = this.pos.getTimeStamp();
+    long current = System.nanoTime();
+    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f);
+    vel.scale(delta);
+    
+    pos.add(vel);
+    
+    this.signal.write(pos, current);
+    
+    return true;
   }
 }

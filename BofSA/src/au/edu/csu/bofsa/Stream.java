@@ -49,6 +49,11 @@ public class Stream<T> implements EventSource<T>, EventSink<T> {
 
   @Override
   public void handleEvent(Event<T> event) {
+    this.notifySinks(event);
+  }
+
+  @Override
+  public void notifySinks(Event<T> event) {
     for (EventSink<T> s : this.sinks) {
       s.handleEvent(event);
     }

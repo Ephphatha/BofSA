@@ -25,18 +25,24 @@ package au.edu.csu.bofsa;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import au.edu.csu.bofsa.Event.Generic;
 
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
+public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink<Event.Generic> {
   
   protected long lastStartTime;
   protected long lastEndTime;
   
   protected Signal<T> signal;
   protected List<InputSignal<?>> inputs;
+  protected Queue<Event<Event.Generic>> events;
 
   @SuppressWarnings("unused")
   private Behaviour() {
@@ -48,6 +54,12 @@ public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
     this.lastStartTime = System.nanoTime();
     this.signal = signal;
     this.lastEndTime = System.nanoTime();
+    
+    this.events = new ConcurrentLinkedQueue<Event<Event.Generic>>();
+  }
+  
+  protected void addInput(InputSignal<?> input) {
+    this.inputs.add(input);
   }
   
   protected void addInputs(List<? extends InputSignal<?>> inputs) {
@@ -65,13 +77,36 @@ public abstract class Behaviour<T extends Copyable<T>> implements Runnable {
   }
   
   @Override
-  public void run() {
+  public Boolean call() {
+    while (!this.events.isEmpty()) {
+      Event<Event.Generic> e = this.events.poll();
+      
+      if (e != null) {
+        if (e.value == Event.Generic.DEATH) {
+          return false;
+        }
+      }
+    }
+    
     this.lastStartTime = System.nanoTime();
     
-    doRun();
+    if (!doRun()) {
+      return false;
+    }
     
     this.lastEndTime = System.nanoTime();
+    
+    return true;
+  }
+
+  @Override
+  public void handleEvent(Event<Generic> event) {
+    this.events.offer(event);
   }
   
-  abstract protected void doRun();
+  abstract protected boolean doRun();
+
+  public long getLastRunTime() {
+    return this.lastEndTime;
+  }
 }

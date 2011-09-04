@@ -23,17 +23,19 @@
  */
 package au.edu.csu.bofsa;
 
+import java.util.concurrent.Callable;
+
 /**
  * @author ephphatha
  *
  */
-public class Switcher<T extends Copyable<T>> implements Runnable {
+public class Switcher<T extends Copyable<T>> implements Callable<Boolean> {
 
   protected Behaviour<T> behaviour;
   
   @Override
-  public void run() {
-    this.behaviour.run();
+  public Boolean call() {
+    return this.behaviour.call();
   }
 
   public Behaviour<T> switchTo(Behaviour<T> behaviour) {

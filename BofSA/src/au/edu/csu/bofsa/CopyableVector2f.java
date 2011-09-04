@@ -36,6 +36,11 @@ public class CopyableVector2f extends Vector2f implements Copyable<CopyableVecto
     this.y = y;
   }
   
+  public CopyableVector2f(Vector2f rhs) {
+    this.x = rhs.x;
+    this.y = rhs.y;
+  }
+
   @Override
   public void copy(CopyableVector2f rhs) {
     this.x = rhs.x;

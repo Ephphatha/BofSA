@@ -24,18 +24,18 @@
 package au.edu.csu.bofsa;
 
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
 
 /**
  * @author ephphatha
  *
  */
-public class WorkerThread extends Thread implements Executor {
+public class WorkerThread extends Thread implements Caller<Boolean> {
 
   protected Scheduler scheduler;
   
-  protected Queue<Runnable> tasks;
+  protected Queue<Callable<Boolean>> tasks;
   
   /**
    * 
@@ -43,18 +43,22 @@ public class WorkerThread extends Thread implements Executor {
   public WorkerThread(Scheduler s) {
     this.scheduler = s;
     
-    this.tasks = new ConcurrentLinkedQueue<Runnable>();
+    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
   }
 
   public void run() {
     while (!Thread.interrupted()) {
       if (!this.tasks.isEmpty()) {
         do {
+          Callable<Boolean> c = this.tasks.poll();
           try {
-            Runnable t = this.tasks.poll();
-            t.run();
-            this.scheduler.execute(t);
-          } finally {
+            if (c.call()) {
+              this.scheduler.call(c);
+            }
+          } catch (InterruptedException e) {
+            break;
+          } catch (Exception e) {
+            // Goggles
           }
         } while (!this.tasks.isEmpty());
         
@@ -65,7 +69,7 @@ public class WorkerThread extends Thread implements Executor {
     }
   }
 
-  public void execute(Runnable r) {
+  public void call(Callable<Boolean> r) {
     this.tasks.add(r);
   }
 }

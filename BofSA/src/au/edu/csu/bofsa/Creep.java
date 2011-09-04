@@ -23,24 +23,16 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.geom.Rectangle;
-import org.newdawn.slick.geom.Vector2f;
 
 /**
  * @author ephphatha
  *
  */
 public class Creep {
-  protected Vector2f position,
-                     goal,
-                     checkpoint,
-                     velocity;
-  
-  protected Queue<CheckPoint> checkpoints;
+  protected InputSignal<CopyableVector2f> position,
+                                          velocity;
   
   protected Sprite sprite;
   protected Sprite.SequencePoint[] northSequence,
@@ -95,7 +87,7 @@ public class Creep {
     AUDITOR
   }
   
-  Creep(Sprite sprite, final Sprite.SequencePoint[] frames, final Vector2f position, final Queue<CheckPoint> checkpoints, final Vector2f goal, final Attributes attributes) {
+  Creep(Sprite sprite, final Sprite.SequencePoint[] frames, final InputSignal<CopyableVector2f> position, final Attributes attributes) {
     this.sprite = sprite;
 
     this.southSequence = new Sprite.SequencePoint[4];
@@ -122,90 +114,30 @@ public class Creep {
       this.eastSequence[i] = frames[i + 12];
     }
     
-    this.position = position.copy();
-    this.goal = goal;
-    try {
-      this.checkpoints = new LinkedList<CheckPoint>(checkpoints);
-    } catch (NullPointerException e) {
-      this.checkpoints= null;
-    }
+    this.position = position;
     this.attributes = attributes;
-    
-    this.calculateVelocity();
-    
-    this.getNextCheckpoint();
   }
   
-  public void getNextCheckpoint() {
-    if (this.checkpoints != null) {
-      CheckPoint cp = this.checkpoints.poll();
-      
-      if (cp != null) {
-        this.checkpoint = cp.position;
-        return;
-      }
-    }
-    
-    this.checkpoint = null;
-  }
-
   public Rectangle getBounds() {
-    return new Rectangle(this.position.x - 0.25f, this.position.y - 0.25f, 0.5f, 0.5f);
+    CopyableVector2f pos = this.position.read();
+    return new Rectangle(pos.x - 0.25f, pos.y - 0.25f, 0.5f, 0.5f);
   }
   
-  public Vector2f getPosition() {
+  public InputSignal<CopyableVector2f> getPosition() {
     return this.position;
   }
   
-  public void setPosition(final Vector2f position) {
-    this.position = position.copy();
+  public void setPosition(final InputSignal<CopyableVector2f> position) {
+    this.position = position;
   }
   
-  public Vector2f getVelocity() {
-    return this.velocity;
-  }
-  
-  public void calculateVelocity() {
-    if (this.checkpoint != null) {
-      this.velocity = this.checkpoint.copy();
-    } else {
-      this.velocity = this.goal.copy();
-    }
-    
-    this.velocity.sub(this.position);
-    
-    if (this.velocity.length() > this.attributes.speed) {
-      this.velocity.normalise();
-      this.velocity.scale(this.attributes.speed);
-    }
-    
-    if (Math.abs(this.velocity.x) >= Math.abs(this.velocity.y)) {
-      // moving east or west
-      if (this.velocity.x >= 0) {
-        this.sprite.setFrameSequence(this.eastSequence);
-      } else {
-        this.sprite.setFrameSequence(this.westSequence);
-      }
-    } else {
-      // moving north or south
-      if (this.velocity.y <= 0) {
-        this.sprite.setFrameSequence(this.northSequence);
-      } else {
-        this.sprite.setFrameSequence(this.southSequence);
-      }
-    }
-  }
-  
-  public void setCheckpoint(Vector2f checkpoint) {
-    this.checkpoint = checkpoint;
-  }
-
   public float getValue() {
     return this.attributes.value;
   }
 
   public void draw(Graphics g, Rectangle tile) {
-    Rectangle r = new Rectangle(tile.getCenterX() - tile.getWidth() / 4.0f, tile.getCenterY() - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
+    CopyableVector2f pos = this.position.read();
+    Rectangle r = new Rectangle(pos.x - tile.getWidth() / 4.0f, pos.y - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
     this.sprite.draw(g, r);
   }
   
@@ -218,22 +150,6 @@ public class Creep {
     
     if (this.attributes.hp <= 0.0f) {
       cm.onDeath(this);
-      return;
-    }
-    
-    this.calculateVelocity();
-  
-    this.position.add(this.velocity.copy().scale(dt));
-    
-    if (this.checkpoint != null) {
-      if (this.position.distanceSquared(this.checkpoint) < 0.5f * 0.5f) {
-        cm.checkpointReached(this);
-        return;
-      }
-    }
-    
-    if (this.position.distanceSquared(this.goal) < 0.5f * 0.5f) {
-      cm.goalReached(this);
       return;
     }
   }

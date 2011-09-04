@@ -30,8 +30,10 @@ import org.newdawn.slick.ImageBuffer;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.geom.Vector2f;
 
-import au.edu.csu.bofsa.Creep.Attributes;
-import au.edu.csu.bofsa.Creep.Type;
+import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
+import au.edu.csu.bofsa.Behaviours.CollisionBehaviour;
+import au.edu.csu.bofsa.Behaviours.MoveBehaviour;
+import au.edu.csu.bofsa.Behaviours.VelocityBehaviour;
 
 /**
  * @author ephphatha
@@ -42,7 +44,7 @@ public class CreepFactory {
                   spriteSheet;
   
 
-  public Creep spawnCreep(final Type type, final Vector2f pos,
+  public void spawnCreep(Scheduler scheduler, final CopyableVector2f pos,
       final Queue<CheckPoint> cps, final Vector2f goal) {
     if (this.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
@@ -70,44 +72,37 @@ public class CreepFactory {
       s = new Sprite(this.errorImage);
     }
 
-    int offset = 0;
-    Attributes attributes = new Attributes(type);
-    switch (type) {
-    case CUSTOMER:
-      offset = 0;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(100.0f);
-      attributes.setMaxSpeed(1.0f);
-      break;
-      
-    case HOBO:
-      offset = 16;
-      attributes.setDamage(0.5f);
-      attributes.setHealth(10.0f);
-      attributes.setMaxSpeed(0.5f);
-      break;
-      
-    case AUDITOR:
-      offset = 32;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(250.0f);
-      attributes.setMaxSpeed(2.0f);
-      break;
-      
-    default:
-      offset = 48;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(10.0f);
-      attributes.setMaxSpeed(1.0f);
-      break;
-    }
+    Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
+    
+    Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 
-    Sprite.SequencePoint[] a = new Sprite.SequencePoint[16];
-
-    for (int j = 0; j < 16; ++j) {
-      a[j] = new Sprite.SequencePoint(j + offset, 0.25f);
+    for (int i = 0; i < 4; ++i) {
+      a[i] = new Sprite.SequencePoint[4];
+      for (int j = 0; j < 4; ++j) {
+        a[i][j] = new Sprite.SequencePoint((i * 4) + j, 0.25f);
+      }
     }
     
-    return new Creep(s, a, pos, cps, goal, attributes);
+    Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(pos);
+    
+    Signal<CopyableVector2f> velocity = new Signal<CopyableVector2f>(new CopyableVector2f(0, 0));
+    
+    MoveBehaviour m = new MoveBehaviour(position, position, velocity);
+    
+    scheduler.call(m);
+    
+    Signal<CheckPoint> cp = new Signal<CheckPoint>(cps.peek());
+    
+    VelocityBehaviour v = new VelocityBehaviour(velocity, position, cp, speed);
+
+    scheduler.call(v);
+    
+    CollisionBehaviour c = new CollisionBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), velocity, new Signal<CopyableFloat>(new CopyableFloat(0.5f)), cp);
+
+    scheduler.call(c);
+    
+    ActorRenderBehaviour arb = new ActorRenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, velocity, s, a);
+
+    scheduler.call(arb);
   }
 }
