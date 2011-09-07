@@ -29,18 +29,20 @@ import java.util.EventObject;
  * @author ephphatha
  *
  */
-public class Event<T> extends EventObject {
+public class Event extends EventObject {
 
   private static final long serialVersionUID = 4217150846147361214L;
   
-  public final T value;
+  public final Object value;
   public final long time;
   
   public static enum Generic {
-    DEATH
+    DEATH,
+    ADD_DRAWABLE,
+    REMOVE_DRAWABLE
   }
 
-  public Event(Object source, T value, long time) {
+  public Event(Object source, Object value, long time) {
     super(source);
     this.value = value;
     this.time = time;

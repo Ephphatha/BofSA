@@ -25,8 +25,10 @@ package au.edu.csu.bofsa.Behaviours;
 
 import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CopyableVector2f;
+import au.edu.csu.bofsa.Event;
 import au.edu.csu.bofsa.InputSignal;
 import au.edu.csu.bofsa.Signal;
+import au.edu.csu.bofsa.Stream;
 
 
 /**
@@ -38,7 +40,7 @@ public class MoveBehaviour extends Behaviour<CopyableVector2f> {
   protected InputSignal<CopyableVector2f> pos;
   protected InputSignal<CopyableVector2f> vel;
   
-  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity) {
+  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity, Stream creepStream) {
     super(targetPosition);
 
     this.addInput(position);
@@ -46,16 +48,28 @@ public class MoveBehaviour extends Behaviour<CopyableVector2f> {
     
     this.pos = position;
     this.vel = velocity;
+    
+    creepStream.addSink(this);
   }
 
   @Override
   protected boolean doRun() {
+    while (!this.events.isEmpty()) {
+      Event e = this.events.poll();
+      
+      if (e.value instanceof Event.Generic) {
+        if ((Event.Generic)e.value == Event.Generic.DEATH) {
+          return false;
+        }
+      }
+    }
+    
     CopyableVector2f vel = this.vel.read();
     CopyableVector2f pos = this.pos.read();
     
     long lastUpdate = this.pos.getTimeStamp();
     long current = System.nanoTime();
-    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f);
+    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f * 1000.0f);
     vel.scale(delta);
     
     pos.add(vel);

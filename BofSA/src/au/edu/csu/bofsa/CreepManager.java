@@ -25,24 +25,12 @@ package au.edu.csu.bofsa;
 
 import java.util.Queue;
 
-import org.newdawn.slick.geom.Vector2f;
-
-import au.edu.csu.bofsa.Creep.Type;
-
 /**
  * @author ephphatha
  *
  */
 public interface CreepManager {
   
-  public void onSpawn(Creep c);
-  
-  public void onDeath(Creep c);
-  
-  public void checkpointReached(Creep c);
-  
-  public void goalReached(Creep c);
-
-  public void spawnCreep(Type customer, Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal);
+  public void spawnCreep(CopyableVector2f position,
+      Queue<CheckPoint> checkpoints);
 }

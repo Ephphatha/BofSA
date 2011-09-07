@@ -27,10 +27,10 @@ package au.edu.csu.bofsa;
  * @author ephphatha
  *
  */
-public interface EventSource<T> {
-  public void addSink(EventSink<T> sink);
+public interface EventSource {
+  public void addSink(EventSink sink);
   
-  public void removeSink(EventSink<T> sink);
+  public void removeSink(EventSink sink);
   
-  public void notifySinks(Event<T> event);
+  public void notifySinks(Event event);
 }

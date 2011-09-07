@@ -28,12 +28,12 @@ import java.util.Queue;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.ImageBuffer;
 import org.newdawn.slick.SlickException;
-import org.newdawn.slick.geom.Vector2f;
 
 import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.CollisionBehaviour;
 import au.edu.csu.bofsa.Behaviours.MoveBehaviour;
 import au.edu.csu.bofsa.Behaviours.VelocityBehaviour;
+import au.edu.csu.bofsa.Behaviours.WaypointBehaviour;
 
 /**
  * @author ephphatha
@@ -45,7 +45,7 @@ public class CreepFactory {
   
 
   public void spawnCreep(Scheduler scheduler, final CopyableVector2f pos,
-      final Queue<CheckPoint> cps, final Vector2f goal) {
+      final Queue<CheckPoint> cps, EventSink drawWatcher) {
     if (this.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
       
@@ -72,8 +72,6 @@ public class CreepFactory {
       s = new Sprite(this.errorImage);
     }
 
-    Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
-    
     Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 
     for (int i = 0; i < 4; ++i) {
@@ -83,25 +81,33 @@ public class CreepFactory {
       }
     }
     
+    Stream creepStream = new Stream();
+    
     Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(pos);
     
     Signal<CopyableVector2f> velocity = new Signal<CopyableVector2f>(new CopyableVector2f(0, 0));
     
-    MoveBehaviour m = new MoveBehaviour(position, position, velocity);
+    MoveBehaviour m = new MoveBehaviour(position, position, velocity, creepStream);
     
     scheduler.call(m);
     
     Signal<CheckPoint> cp = new Signal<CheckPoint>(cps.peek());
     
-    VelocityBehaviour v = new VelocityBehaviour(velocity, position, cp, speed);
+    WaypointBehaviour w = new WaypointBehaviour(cp, cps, creepStream);
+    
+    scheduler.call(w);
+    
+    Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
+    
+    VelocityBehaviour v = new VelocityBehaviour(velocity, position, cp, speed, creepStream);
 
     scheduler.call(v);
     
-    CollisionBehaviour c = new CollisionBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), velocity, new Signal<CopyableFloat>(new CopyableFloat(0.5f)), cp);
+    CollisionBehaviour c = new CollisionBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, new Signal<CopyableFloat>(new CopyableFloat(0.25f)), cp, creepStream);
 
     scheduler.call(c);
     
-    ActorRenderBehaviour arb = new ActorRenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, velocity, s, a);
+    ActorRenderBehaviour arb = new ActorRenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, velocity, s, a, creepStream, drawWatcher);
 
     scheduler.call(arb);
   }

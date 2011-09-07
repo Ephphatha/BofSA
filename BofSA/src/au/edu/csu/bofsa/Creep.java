@@ -149,7 +149,7 @@ public class Creep {
     this.update(dt);
     
     if (this.attributes.hp <= 0.0f) {
-      cm.onDeath(this);
+      //cm.onDeath(this);
       return;
     }
   }

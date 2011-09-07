@@ -61,9 +61,9 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
             // Goggles
           }
         } while (!this.tasks.isEmpty());
-        
-        this.scheduler.slice(this);
       }
+      
+      this.scheduler.slice(this);
       
       Thread.yield();
     }

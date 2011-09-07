@@ -50,7 +50,7 @@ public class SpawnPoint {
   }
 
   public SpawnPoint(final Vector2f position, float spawnDuration, float spawnInterval, float lullDuration) {
-    this.position = position;
+    this.position = position.copy();
     
     this.spawnDuration = spawnDuration;
     this.spawnInterval = spawnInterval;
@@ -68,6 +68,10 @@ public class SpawnPoint {
   public boolean setCheckPoints(Queue<CheckPoint> checkpoints) {
     if (this.checkpoints == null) {
       this.checkpoints = checkpoints;
+      
+      if (this.goal != null) {
+        this.checkpoints.add(new CheckPoint(this.checkpoints.size(), goal));
+      }
       return true;
     } else {
       return false;
@@ -77,6 +81,10 @@ public class SpawnPoint {
   public boolean setGoal(Vector2f goal) {
     if (this.goal == null) {
       this.goal = goal;
+      
+      if (this.checkpoints != null) {
+        this.checkpoints.add(new CheckPoint(this.checkpoints.size(), goal));
+      }
       return true;
     } else {
       return false;
@@ -105,7 +113,7 @@ public class SpawnPoint {
       case SPAWNING:
         while (this.elapsedTime - this.lastSpawnTime >= this.spawnInterval) {
           this.lastSpawnTime += this.spawnInterval;
-          cm.spawnCreep(Creep.Type.CUSTOMER, this.position, this.checkpoints, this.goal);
+          cm.spawnCreep(new CopyableVector2f(this.position), this.checkpoints);
           
           if (this.lastSpawnTime > this.spawnDuration) {
             break;

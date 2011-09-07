@@ -30,31 +30,31 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * @author ephphatha
  *
  */
-public class Stream<T> implements EventSource<T>, EventSink<T> {
-  protected Set<EventSink<T>> sinks;
+public class Stream implements EventSource, EventSink {
+  protected Set<EventSink> sinks;
   
   public Stream() {
-    this.sinks = new ConcurrentSkipListSet<EventSink<T>>();
+    this.sinks = new ConcurrentSkipListSet<EventSink>();
   }
 
   @Override
-  public void addSink(EventSink<T> sink) {
+  public void addSink(EventSink sink) {
     this.sinks.add(sink);
   }
 
   @Override
-  public void removeSink(EventSink<T> sink) {
+  public void removeSink(EventSink sink) {
     this.sinks.remove(sink);
   }
 
   @Override
-  public void handleEvent(Event<T> event) {
+  public void handleEvent(Event event) {
     this.notifySinks(event);
   }
 
   @Override
-  public void notifySinks(Event<T> event) {
-    for (EventSink<T> s : this.sinks) {
+  public void notifySinks(Event event) {
+    for (EventSink s : this.sinks) {
       s.handleEvent(event);
     }
   }

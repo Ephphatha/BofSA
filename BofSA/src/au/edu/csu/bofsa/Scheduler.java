@@ -23,6 +23,8 @@
  */
 package au.edu.csu.bofsa;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,18 +36,52 @@ import java.util.concurrent.PriorityBlockingQueue;
  */
 public class Scheduler implements Caller<Boolean> {
 
+  protected List<Thread> threads;
   protected Queue<WorkerThread> idleThreads;
   
   protected Queue<Callable<Boolean>> tasks;
   protected Queue<Callable<Boolean>> pendingTasks;
   
+  protected static enum State {
+    RUNNING,
+    STOPPED
+  }
+  
+  protected State state;
+  
   public Scheduler() {
+    this.threads = new LinkedList<Thread>();
     this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
     this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
     this.pendingTasks = new PriorityBlockingQueue<Callable<Boolean>>();
   }
   
+  public void start() {
+    for (int i = 0; i < Runtime.getRuntime().availableProcessors(); ++i) {
+      Thread t = new WorkerThread(this);
+      this.threads.add(t);
+      t.start();
+    }
+    
+    this.state = State.RUNNING;
+  }
+  
+  public void stop() {
+    this.state = State.STOPPED;
+    
+    for (Thread t : this.threads) {
+      t.interrupt();
+    }
+    
+    this.threads.clear();
+    this.tasks.clear();
+    this.pendingTasks.clear();
+  }
+  
   public void slice(WorkerThread worker) {
+    if (this.state == State.STOPPED) {
+      return;
+    }
 
     Callable<Boolean> t = this.tasks.poll();
     while (t != null && !this.idleThreads.isEmpty()) {
@@ -61,13 +97,15 @@ public class Scheduler implements Caller<Boolean> {
     
     if (t != null) {
       worker.call(t);
-    } else {
+    } else if (this.idleThreads.size() + 1 < this.threads.size()) {
       worker.setPriority(Thread.MIN_PRIORITY);
       this.idleThreads.add(worker);
     }
   }
 
   public void call(Callable<Boolean> c) {
-    this.tasks.add(c);
+    if (this.state == State.RUNNING) {
+      this.tasks.add(c);
+    }
   }
 }

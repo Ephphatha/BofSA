@@ -23,11 +23,9 @@
  */
 package au.edu.csu.bofsa.Behaviours;
 
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-
 import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CheckPoint;
+import au.edu.csu.bofsa.CollisionEvent;
 import au.edu.csu.bofsa.CopyableBoolean;
 import au.edu.csu.bofsa.CopyableFloat;
 import au.edu.csu.bofsa.CopyableVector2f;
@@ -36,20 +34,21 @@ import au.edu.csu.bofsa.EventSink;
 import au.edu.csu.bofsa.EventSource;
 import au.edu.csu.bofsa.InputSignal;
 import au.edu.csu.bofsa.Signal;
+import au.edu.csu.bofsa.Stream;
 
 /**
  * @author ephphatha
  *
  */
-public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements EventSource<InputSignal<CheckPoint>> {
+public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements EventSource {
 
   protected InputSignal<CopyableVector2f> object;
   protected InputSignal<CopyableFloat> radius;
   protected InputSignal<CheckPoint> collider;
   
-  protected Set<EventSink<InputSignal<CheckPoint>>> sinks;
+  protected EventSink creepStream;
   
-  public CollisionBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> object, InputSignal<CopyableFloat> radius, InputSignal<CheckPoint> collider) {
+  public CollisionBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> object, InputSignal<CopyableFloat> radius, InputSignal<CheckPoint> collider, Stream creepStream) {
     super(signal);
 
     this.addInput(object);
@@ -60,17 +59,29 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
     this.radius = radius;
     this.collider = collider;
     
-    this.sinks = new CopyOnWriteArraySet<EventSink<InputSignal<CheckPoint>>>();
+    this.addSink(creepStream);
+    
+    creepStream.addSink(this);
   }
 
   @Override
   protected boolean doRun() {
+    while (!this.events.isEmpty()) {
+      Event e = this.events.poll();
+      
+      if (e.value instanceof Event.Generic) {
+        if ((Event.Generic)e.value == Event.Generic.DEATH) {
+          return false;
+        }
+      }
+    }
+    
     CopyableVector2f objPos = this.object.read();
     CheckPoint colPos = this.collider.read();
     
     if (objPos.distanceSquared(colPos.position) <= Math.pow(this.radius.read().getValue(), 2)) {
       if (this.signal.read().getValue() == false) {
-        this.notifySinks(new Event<InputSignal<CheckPoint>>(this, this.collider, System.nanoTime()));
+        this.notifySinks(new CollisionEvent(this, this.collider.read(), System.nanoTime()));
         this.signal.write(new CopyableBoolean(true));
       }
     } else {
@@ -81,19 +92,17 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
   }
 
   @Override
-  public void addSink(EventSink<InputSignal<CheckPoint>> sink) {
-    this.sinks.add(sink);
+  public void addSink(EventSink sink) {
+    this.creepStream = sink;
   }
 
   @Override
-  public void removeSink(EventSink<InputSignal<CheckPoint>> sink) {
-    this.sinks.remove(sink);
+  public void removeSink(EventSink sink) {
+    this.creepStream = null;
   }
 
   @Override
-  public void notifySinks(Event<InputSignal<CheckPoint>> event) {
-    for (EventSink<InputSignal<CheckPoint>> s : this.sinks) {
-      s.handleEvent(event);
-    }
+  public void notifySinks(Event event) {
+    this.creepStream.handleEvent(event);
   }
 }

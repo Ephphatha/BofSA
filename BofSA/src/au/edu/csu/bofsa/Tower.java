@@ -184,7 +184,7 @@ public class Tower {
   }
 
   private boolean attack(Creep c) {
-    if (this.position.distanceSquared(c.getPosition()) <= this.attributes.rangeSquared) {
+    if (this.position.distanceSquared(c.getPosition().read()) <= this.attributes.rangeSquared) {
       c.takeDamage(this.attributes.type, this.attributes.damage);
       return true;
     } else {

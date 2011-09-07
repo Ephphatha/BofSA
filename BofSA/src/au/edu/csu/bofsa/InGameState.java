@@ -23,37 +23,32 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.geom.Rectangle;
-import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
-
-import au.edu.csu.bofsa.Creep.Type;
 
 /**
  * @author ephphatha
  *
  */
-public class InGameState implements GameState, CreepManager {
+public class InGameState implements GameState, CreepManager, EventSink, Comparable<InGameState> {
   private int stateID;
   
   protected GameLevel map;
   
-  private float value;
-
   private CreepFactory creepFactory;
 
-  private List<Thread> threads;
-
   private Scheduler scheduler;
+
+  private List<Drawable> drawables;
 
   @SuppressWarnings("unused")
   private InGameState() {
@@ -63,7 +58,9 @@ public class InGameState implements GameState, CreepManager {
   public InGameState(int id) {
     this.stateID = id;
 
-    this.threads = new LinkedList<Thread>();
+    this.drawables = new CopyOnWriteArrayList<Drawable>();
+    
+    this.scheduler = new Scheduler();
   }
 
   @Override
@@ -80,13 +77,7 @@ public class InGameState implements GameState, CreepManager {
       e.printStackTrace();
     }
     
-    for (int i = 0; i < Runtime.getRuntime().availableProcessors(); ++i) {
-      Thread t = new WorkerThread(this.scheduler);
-      this.threads.add(t);
-      t.start();
-    }
-    
-    this.value = 0.0f;
+    this.scheduler.start();
   }
 
   @Override
@@ -99,11 +90,7 @@ public class InGameState implements GameState, CreepManager {
       throws SlickException {
     this.map = null;
 
-    for (Thread t : this.threads) {
-      t.interrupt();
-    }
-    
-    this.threads.clear();
+    this.scheduler.stop();
   }
 
   @Override
@@ -114,12 +101,12 @@ public class InGameState implements GameState, CreepManager {
       
       Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
 
-      //for (Creep c : this.creeps) {
-        //c.draw(g, tile);
-      //}
+      for (Drawable d : this.drawables) {
+        d.draw(g, tile);
+      }
     }
 
-    g.drawString("Asset value: " + Float.toString(this.value), 5, 25);
+    //g.drawString("Asset value: " + Float.toString(this.value), 5, 25);
   }
 
   @Override
@@ -127,8 +114,8 @@ public class InGameState implements GameState, CreepManager {
       throws SlickException {
     Input input = container.getInput();
 
-    Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
-                                          (float) input.getMouseY() / (float) container.getHeight());
+    //Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
+    //                                      (float) input.getMouseY() / (float) container.getHeight());
     
     if (input.isKeyPressed(Input.KEY_ESCAPE)) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
@@ -141,6 +128,32 @@ public class InGameState implements GameState, CreepManager {
     // Game logic
     
     this.map.update(this, delta / 1000.0f);
+  }
+
+  @Override
+  public void spawnCreep(CopyableVector2f position,
+      Queue<CheckPoint> checkpoints) {
+    if (this.creepFactory == null) {
+      this.creepFactory = new CreepFactory();
+    }
+    
+    this.creepFactory.spawnCreep(this.scheduler, position, checkpoints, this);
+  }
+
+  @Override
+  public void handleEvent(Event event) {
+    if (event.value instanceof Event.Generic) {
+      if ((Event.Generic)event.value == Event.Generic.ADD_DRAWABLE) {
+        this.drawables.add((Drawable) event.getSource());
+      } else if ((Event.Generic)event.value == Event.Generic.REMOVE_DRAWABLE) {
+        this.drawables.remove(event.getSource());
+      }
+    }
+  }
+
+  @Override
+  public int compareTo(InGameState o) {
+    return this.hashCode() - o.hashCode();
   }
 
   @Override
@@ -273,37 +286,5 @@ public class InGameState implements GameState, CreepManager {
   public void controllerUpReleased(int controller) {
     // TODO Auto-generated method stub
     
-  }
-
-  @Override
-  public void onDeath(Creep c) {
-    this.value += c.getValue();
-    this.creepPositions.remove(c.getPosition());
-  }
-
-  @Override
-  public void checkpointReached(Creep c) {
-  }
-
-  @Override
-  public void goalReached(Creep c) {
-    System.out.println("A creep has reached its goal!");
-    
-    this.value -= c.getValue();
-  }
-
-  @Override
-  public void onSpawn(Creep c) {
-    this.creepPositions.add(c.getPosition());
-  }
-
-  @Override
-  public void spawnCreep(Type type, Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal) {
-    if (this.creepFactory == null) {
-      this.creepFactory = new CreepFactory();
-    }
-    
-    this.onSpawn(this.creepFactory.spawnCreep(type, position, checkpoints, goal));
   }
 }

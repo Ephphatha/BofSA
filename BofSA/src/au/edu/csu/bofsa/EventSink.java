@@ -27,6 +27,6 @@ package au.edu.csu.bofsa;
  * @author ephphatha
  *
  */
-public interface EventSink<T> {
-  public void handleEvent(Event<T> event);
+public interface EventSink {
+  public void handleEvent(Event event);
 }

@@ -29,20 +29,18 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import au.edu.csu.bofsa.Event.Generic;
-
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink<Event.Generic> {
+public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink, Comparable<Behaviour<?>> {
   
   protected long lastStartTime;
   protected long lastEndTime;
   
   protected Signal<T> signal;
   protected List<InputSignal<?>> inputs;
-  protected Queue<Event<Event.Generic>> events;
+  protected Queue<Event> events;
 
   @SuppressWarnings("unused")
   private Behaviour() {
@@ -55,7 +53,7 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     this.signal = signal;
     this.lastEndTime = System.nanoTime();
     
-    this.events = new ConcurrentLinkedQueue<Event<Event.Generic>>();
+    this.events = new ConcurrentLinkedQueue<Event>();
   }
   
   protected void addInput(InputSignal<?> input) {
@@ -78,16 +76,6 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   
   @Override
   public Boolean call() {
-    while (!this.events.isEmpty()) {
-      Event<Event.Generic> e = this.events.poll();
-      
-      if (e != null) {
-        if (e.value == Event.Generic.DEATH) {
-          return false;
-        }
-      }
-    }
-    
     this.lastStartTime = System.nanoTime();
     
     if (!doRun()) {
@@ -100,7 +88,7 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   }
 
   @Override
-  public void handleEvent(Event<Generic> event) {
+  public void handleEvent(Event event) {
     this.events.offer(event);
   }
   
@@ -108,5 +96,9 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
 
   public long getLastRunTime() {
     return this.lastEndTime;
+  }
+  
+  public int compareTo(Behaviour<?> o) {
+    return this.hashCode()- o.hashCode();
   }
 }

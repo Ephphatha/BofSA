@@ -28,28 +28,12 @@ package au.edu.csu.bofsa;
  * @author ephphatha
  *
  */
-public class Signal<T extends Copyable<T>> implements InputSignal<T> {
-  protected T buffer;
-  protected long timeStamp;
-  
-  public Signal(final T value) {
-    this.write(value);
+public class CollisionEvent extends Event {
+
+  private static final long serialVersionUID = -6947161911179324386L;
+
+  public CollisionEvent(Object source, CheckPoint value, long time) {
+    super(source, value, time);
   }
-  
-  public void write(final T newValue) {
-    write(newValue, System.nanoTime());
-  }
-  
-  public void write(final T newValue, long timeStamp) {
-    this.buffer = newValue.copy();
-    this.timeStamp = timeStamp;
-  }
-  
-  public final T read() {
-    return this.buffer.copy();
-  }
-  
-  public long getTimeStamp() {
-    return this.timeStamp;
-  }
+
 }

@@ -23,12 +23,12 @@
  */
 package au.edu.csu.bofsa.Behaviours;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CheckPoint;
-import au.edu.csu.bofsa.CopyableFloat;
-import au.edu.csu.bofsa.CopyableVector2f;
 import au.edu.csu.bofsa.Event;
-import au.edu.csu.bofsa.InputSignal;
 import au.edu.csu.bofsa.Signal;
 import au.edu.csu.bofsa.Stream;
 
@@ -36,55 +36,48 @@ import au.edu.csu.bofsa.Stream;
  * @author ephphatha
  *
  */
-public class VelocityBehaviour extends Behaviour<CopyableVector2f>{
+public class WaypointBehaviour extends Behaviour<CheckPoint> {
 
-  protected InputSignal<CopyableVector2f> pos;
-  protected InputSignal<CheckPoint> goal;
-  protected InputSignal<CopyableFloat> speed;
-  
-  /**
-   * @param signal
-   */
-  public VelocityBehaviour(Signal<CopyableVector2f> velocity, InputSignal<CopyableVector2f> position, InputSignal<CheckPoint> goal, InputSignal<CopyableFloat> maxSpeed, Stream creepStream) {
-    super(velocity);
+  protected Queue<CheckPoint> waypoints;
+  protected Stream creepStream;
 
-    this.addInput(position);
-    this.addInput(goal);
-    this.addInput(maxSpeed);
+  public WaypointBehaviour(Signal<CheckPoint> goal, Queue<CheckPoint> waypoints, Stream creepStream) {
+    super(goal);
+    this.waypoints = new LinkedList<CheckPoint>(waypoints);
     
-    this.pos = position;
-    this.goal = goal;
-    this.speed = maxSpeed;
+    if (this.waypoints.isEmpty()) {
+      throw new IllegalArgumentException("Must be at least one waypoint.");
+    }
     
-    creepStream.addSink(this);
+    this.signal.write(this.waypoints.poll());
+    
+    this.creepStream = creepStream;
+    
+    this.creepStream.addSink(this);
   }
 
-  /**
-   * @see au.edu.csu.bofsa.Behaviour#doRun()
-   */
   @Override
   protected boolean doRun() {
-    while (!this.events.isEmpty()) {
-      Event e = this.events.poll();
-      
-      if (e.value instanceof Event.Generic) {
-        if ((Event.Generic)e.value == Event.Generic.DEATH) {
-          return false;
+    if (this.events.isEmpty()) {
+      return true;
+    } else {
+      while (!this.events.isEmpty()) {
+        Event e = this.events.poll();
+        
+        if (e.value instanceof Event.Generic) {
+          if ((Event.Generic)e.value == Event.Generic.DEATH) {
+            return false;
+          }
+        } else if (e.value instanceof CheckPoint) {
+          if (this.waypoints.isEmpty()) {
+            this.creepStream.handleEvent(new Event(this, Event.Generic.DEATH, System.nanoTime()));
+            return false;
+          } else {
+            this.signal.write(this.waypoints.poll());
+          }
         }
       }
     }
-    
-    CopyableVector2f vel = new CopyableVector2f(this.goal.read().position);
-    
-    vel.sub(this.pos.read());
-    
-    float maxSpeed = this.speed.read().getValue();
-    if (vel.lengthSquared() > (maxSpeed * maxSpeed)) {
-      vel.normalise();
-      vel.scale(maxSpeed);
-    }
-    
-    this.signal.write(vel);
     
     return true;
   }

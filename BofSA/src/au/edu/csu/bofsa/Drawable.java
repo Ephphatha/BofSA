@@ -23,33 +23,13 @@
  */
 package au.edu.csu.bofsa;
 
+import org.newdawn.slick.Graphics;
+import org.newdawn.slick.geom.Rectangle;
 
 /**
  * @author ephphatha
  *
  */
-public class Signal<T extends Copyable<T>> implements InputSignal<T> {
-  protected T buffer;
-  protected long timeStamp;
-  
-  public Signal(final T value) {
-    this.write(value);
-  }
-  
-  public void write(final T newValue) {
-    write(newValue, System.nanoTime());
-  }
-  
-  public void write(final T newValue, long timeStamp) {
-    this.buffer = newValue.copy();
-    this.timeStamp = timeStamp;
-  }
-  
-  public final T read() {
-    return this.buffer.copy();
-  }
-  
-  public long getTimeStamp() {
-    return this.timeStamp;
-  }
+public interface Drawable {
+  public void draw(Graphics g, Rectangle tile);
 }
