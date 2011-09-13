@@ -21,59 +21,54 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
 
-import java.util.Queue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import au.edu.csu.bofsa.CopyableFloat;
+import au.edu.csu.bofsa.Events.DamageEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
  *
  */
-public class WorkerThread extends Thread implements Caller<Boolean> {
+public class HealthBehaviour extends Behaviour<CopyableFloat> {
+  
+  protected Stream creepStream;
 
-  protected Scheduler scheduler;
-  
-  protected Queue<Callable<Boolean>> tasks;
-  
-  /**
-   * 
-   */
-  public WorkerThread(Scheduler s) {
-    this.scheduler = s;
+  public HealthBehaviour(Signal<CopyableFloat> signal, Stream creepStream) {
+    super(signal);
     
-    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
+    this.creepStream = creepStream;
+    
+    this.creepStream.addSink(this);
   }
 
-  public void run() {
-    while (!Thread.interrupted()) {
-      if (!this.tasks.isEmpty()) {
-        do {
-          Callable<Boolean> c = this.tasks.poll();
-          try {
-            if (c.call()) {
-              this.scheduler.call(c);
-            } else {
-              synchronized (System.out) {
-                System.out.println("Task returned false: " + c.toString());
-              }
-            }
-          } catch (InterruptedException e) {
-            break;
-          } catch (Exception e) {
-            e.printStackTrace();
+  @Override
+  protected boolean doRun() {
+    while (!this.events.isEmpty()) {
+      Event e = this.events.poll();
+      
+      if (e != null) {
+        if (e instanceof GenericEvent) {
+          if (e.value == GenericEvent.Message.DEATH) {
+            return false;
           }
-        } while (!this.tasks.isEmpty());
+        } else if (e instanceof DamageEvent) {
+          float hp = this.signal.read().getValue();
+          Float damage = (Float) e.value;
+          hp -= damage.floatValue();
+          this.signal.write(new CopyableFloat(hp));
+          
+          if (hp <= 0.0f) {
+            this.creepStream.handleEvent(new GenericEvent(this, GenericEvent.Message.DEATH, Event.Type.BROADCAST, e.time));
+          }
+        }
       }
-      
-      this.scheduler.slice(this);
-      
-      Thread.yield();
     }
+    return true;
   }
 
-  public void call(Callable<Boolean> r) {
-    this.tasks.add(r);
-  }
 }

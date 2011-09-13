@@ -21,12 +21,31 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
+
+import java.util.EventObject;
 
 /**
  * @author ephphatha
  *
  */
-public interface EventSink {
-  public void handleEvent(Event event);
+public abstract class Event extends EventObject {
+
+  private static final long serialVersionUID = 4217150846147361214L;
+  
+  public final Object value;
+  public final Type type;
+  public final long time;
+  
+  public static enum Type {
+    BROADCAST,
+    TARGETTED
+  }
+  
+  public Event(Object source, Object value, Type type, long time) {
+    super(source);
+    this.value = value;
+    this.type = type;
+    this.time = time;
+  }
 }

@@ -44,7 +44,6 @@ public class CopyableFloat implements Copyable<CopyableFloat> {
 
   @Override
   public CopyableFloat copy() {
-    // TODO Auto-generated method stub
     return new CopyableFloat(this.value);
   }
 

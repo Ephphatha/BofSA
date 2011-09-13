@@ -23,12 +23,33 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.Graphics;
-
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public class CopyableLong implements Copyable<CopyableLong> {
+
+  protected long value;
+  
+  public CopyableLong() {
+    this.value = 0;
+  }
+  
+  public CopyableLong(long value) {
+    this.value = value;
+  }
+
+  @Override
+  public void copy(CopyableLong rhs) {
+    this.value = rhs.getValue();
+  }
+
+  @Override
+  public CopyableLong copy() {
+    return new CopyableLong(this.value);
+  }
+
+  public long getValue() {
+    return this.value;
+  }
 }

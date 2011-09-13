@@ -21,14 +21,19 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
 
-import org.newdawn.slick.Graphics;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public class DamageEvent extends Event {
+
+  private static final long serialVersionUID = 3535750964432022803L;
+
+  public DamageEvent(Object source, Float value, Type type, long time) {
+    super(source, value, type, time);
+  }
+
 }

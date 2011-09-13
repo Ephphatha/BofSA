@@ -21,14 +21,17 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
 
-import org.newdawn.slick.Graphics;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public interface EventSource {
+  public void addSink(EventSink sink);
+  
+  public void removeSink(EventSink sink);
+  
+  public void notifySinks(Event event);
 }

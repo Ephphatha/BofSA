@@ -21,14 +21,26 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
 
-import org.newdawn.slick.Graphics;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public class GenericEvent extends Event {
+
+  private static final long serialVersionUID = 236318161589804134L;
+
+  public static enum Message {
+    DEATH,
+    ADD_DRAWABLE,
+    REMOVE_DRAWABLE,
+    NEW_BEHAVIOUR,
+    INPUT
+  }
+
+  public GenericEvent(Object source, Message value, Type type, long time) {
+    super(source, value, type, time);
+  }
 }

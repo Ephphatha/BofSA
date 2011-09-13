@@ -24,31 +24,46 @@
 package au.edu.csu.bofsa;
 
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
-import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
+
+import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
+import au.edu.csu.bofsa.Behaviours.InputPollingBehaviour;
+import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
+import au.edu.csu.bofsa.Events.BuildAreaModEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
  *
  */
-public class InGameState implements GameState, CreepManager, EventSink, Comparable<InGameState> {
+public class InGameState implements GameState, EventSink, Comparable<Object> {
   private int stateID;
   
   protected GameLevel map;
   
-  private CreepFactory creepFactory;
+  private CreepFactoryBehaviour creepFactory;
+  private TowerFactoryBehaviour towerFactory;
+  
+  private InputPollingBehaviour input;
 
   private Scheduler scheduler;
+  
+  private Stream broadcastStream;
 
   private List<Drawable> drawables;
+
+  private Signal<CopyableDimension> tileSize;
 
   @SuppressWarnings("unused")
   private InGameState() {
@@ -60,7 +75,23 @@ public class InGameState implements GameState, CreepManager, EventSink, Comparab
 
     this.drawables = new CopyOnWriteArrayList<Drawable>();
     
+    this.broadcastStream = new Stream();
+    
     this.scheduler = new Scheduler();
+    
+    this.broadcastStream.addSink(this.scheduler);
+    
+    this.tileSize = new Signal<CopyableDimension>(new CopyableDimension(1, 1));
+    
+    Signal<CopyableList<Pipe<CopyableVector2f>>> creeps = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>()); 
+    
+    this.creepFactory = new CreepFactoryBehaviour(creeps, this.tileSize, this.broadcastStream, this.broadcastStream);
+    this.towerFactory = new TowerFactoryBehaviour(new Signal<CopyableList<CopyablePoint>>(new CopyableList<CopyablePoint>()), this.tileSize, creeps, this.broadcastStream, this.broadcastStream);
+    
+    this.broadcastStream.addSink(this.creepFactory);
+    this.broadcastStream.addSink(this.towerFactory);
+    
+    this.input = new InputPollingBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean()), tileSize, broadcastStream);
   }
 
   @Override
@@ -71,26 +102,44 @@ public class InGameState implements GameState, CreepManager, EventSink, Comparab
   @Override
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
+    this.creepFactory.loadResources();
+    this.towerFactory.loadResources();
+    
+    this.scheduler.start();
+    
     try {
-      this.map = new GameLevel("test");
+      this.map = new GameLevel("test", this.scheduler, this.creepFactory, this.towerFactory);
     } catch (SlickException e) {
       e.printStackTrace();
     }
     
-    this.scheduler.start();
+    this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
+    
+    this.scheduler.call(this.creepFactory);
+    this.scheduler.call(this.towerFactory);
+    this.scheduler.call(this.input);
+    
+    container.getInput().addListener(this.input);
   }
 
   @Override
   public void init(GameContainer container, StateBasedGame game)
       throws SlickException {
+    this.broadcastStream.addSink(this);
+    
+    this.tileSize.write(new CopyableDimension(container.getWidth(), container.getHeight()));
   }
 
   @Override
   public void leave(GameContainer container, StateBasedGame game)
       throws SlickException {
     this.map = null;
+    
+    this.towerFactory.handleEvent(new BuildAreaModEvent(this, new BuildAreaModEvent.Data(BuildAreaModEvent.Data.Type.REMOVE_ALL, null), Event.Type.TARGETTED, System.nanoTime()));
 
     this.scheduler.stop();
+    
+    this.drawables.clear();
   }
 
   @Override
@@ -99,10 +148,8 @@ public class InGameState implements GameState, CreepManager, EventSink, Comparab
     if (this.map != null) {
       this.map.render(container, g);
       
-      Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
-
       for (Drawable d : this.drawables) {
-        d.draw(g, tile);
+        d.draw(g);
       }
     }
 
@@ -125,34 +172,22 @@ public class InGameState implements GameState, CreepManager, EventSink, Comparab
       this.map.update(delta / 1000.0f);
     }
     
-    // Game logic
-    
-    this.map.update(this, delta / 1000.0f);
-  }
-
-  @Override
-  public void spawnCreep(CopyableVector2f position,
-      Queue<CheckPoint> checkpoints) {
-    if (this.creepFactory == null) {
-      this.creepFactory = new CreepFactory();
-    }
-    
-    this.creepFactory.spawnCreep(this.scheduler, position, checkpoints, this);
+    this.creepFactory.call();
   }
 
   @Override
   public void handleEvent(Event event) {
-    if (event.value instanceof Event.Generic) {
-      if ((Event.Generic)event.value == Event.Generic.ADD_DRAWABLE) {
+    if (event instanceof GenericEvent) {
+      if ((GenericEvent.Message)event.value == GenericEvent.Message.ADD_DRAWABLE) {
         this.drawables.add((Drawable) event.getSource());
-      } else if ((Event.Generic)event.value == Event.Generic.REMOVE_DRAWABLE) {
+      } else if ((GenericEvent.Message)event.value == GenericEvent.Message.REMOVE_DRAWABLE) {
         this.drawables.remove(event.getSource());
       }
     }
   }
 
   @Override
-  public int compareTo(InGameState o) {
+  public int compareTo(Object o) {
     return this.hashCode() - o.hashCode();
   }
 

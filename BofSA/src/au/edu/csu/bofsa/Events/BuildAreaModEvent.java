@@ -21,14 +21,37 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
+
+import au.edu.csu.bofsa.CopyablePoint;
 
 /**
  * @author ephphatha
  *
  */
-public interface InputSignal<T> {
-  public T read();
+public class BuildAreaModEvent extends Event {
+
+  private static final long serialVersionUID = 4368356308646122794L;
   
-  public long getTimeStamp();
+  public static class Data {
+    public static enum Type {
+      ADD_LOCATION,
+      REMOVE_LOCATION,
+      REMOVE_ALL
+    }
+    
+    public Type type;
+    
+    public CopyablePoint position;
+    
+    public Data(Type type, CopyablePoint position) {
+      this.type = type;
+      this.position = position;
+    }
+  }
+  
+  public BuildAreaModEvent(Object source, Data value, Type type, long time) {
+    super(source, value, type, time);
+  }
+
 }

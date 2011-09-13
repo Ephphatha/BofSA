@@ -30,11 +30,15 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.GenericEvent;
+
 /**
  * @author ephphatha
  *
  */
-public class Scheduler implements Caller<Boolean> {
+public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object> {
 
   protected List<Thread> threads;
   protected Queue<WorkerThread> idleThreads;
@@ -107,5 +111,20 @@ public class Scheduler implements Caller<Boolean> {
     if (this.state == State.RUNNING) {
       this.tasks.add(c);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void handleEvent(Event event) {
+    if (event instanceof GenericEvent) {
+      if (event.value == GenericEvent.Message.NEW_BEHAVIOUR) {
+        this.call((Callable<Boolean>) event.getSource());
+      }
+    }
+  }
+
+  @Override
+  public int compareTo(Object o) {
+    return this.hashCode() - o.hashCode();
   }
 }

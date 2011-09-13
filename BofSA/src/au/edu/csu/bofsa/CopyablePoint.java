@@ -23,14 +23,30 @@
  */
 package au.edu.csu.bofsa;
 
+import java.awt.Point;
+
+
 /**
  * @author ephphatha
  *
  */
-public interface EventSource {
-  public void addSink(EventSink sink);
-  
-  public void removeSink(EventSink sink);
-  
-  public void notifySinks(Event event);
+public class CopyablePoint extends Point implements Copyable<CopyablePoint> {
+
+  private static final long serialVersionUID = -3243969270818639218L;
+
+  public CopyablePoint(int x, int y) {
+    super(x, y);
+  }
+
+  @Override
+  public void copy(CopyablePoint rhs) {
+    this.x = rhs.x;
+    this.y = rhs.y;
+  }
+
+  @Override
+  public CopyablePoint copy() {
+    return new CopyablePoint(this.x, this.y);
+  }
+
 }

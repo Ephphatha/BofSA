@@ -24,11 +24,8 @@
 package au.edu.csu.bofsa;
 
 import java.awt.Dimension;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Queue;
 
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
@@ -38,6 +35,14 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.gui.GUIContext;
 import org.newdawn.slick.tiled.TiledMap;
 
+import au.edu.csu.bofsa.Behaviours.SpawnBehaviour;
+import au.edu.csu.bofsa.Events.BuildAreaModEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
+
 /**
  * @author ephphatha
  *
@@ -46,7 +51,6 @@ public class GameLevel {
 
   protected Dimension size;
   protected BoardNode[][] board;
-  protected List<SpawnPoint> spawns;
   
   public static class BoardNode {
     protected EnumSet<Attribute> attributes;
@@ -123,7 +127,7 @@ public class GameLevel {
     }
   }
   
-  public GameLevel(String levelName) throws SlickException {
+  public GameLevel(String levelName, EventSink behaviourListener, EventSink spawnListener, EventSink buildListener) throws SlickException {
     TiledMap map = new TiledMap("levels/" + levelName + ".tmx");
     
     this.size = new Dimension(map.getWidth(), map.getHeight());
@@ -149,6 +153,7 @@ public class GameLevel {
         if (buildableLayer >= 0) {
           if (map.getTileImage(x, y, buildableLayer) != null) {
             attributes.add(BoardNode.Attribute.BUILDABLE);
+            buildListener.handleEvent(new BuildAreaModEvent(this, new BuildAreaModEvent.Data(BuildAreaModEvent.Data.Type.ADD_LOCATION, new CopyablePoint(x, y)), Event.Type.TARGETTED, System.nanoTime()));
           }
         }
         
@@ -162,8 +167,6 @@ public class GameLevel {
       }
     }
     
-    this.spawns = new ArrayList<SpawnPoint>();
-    
     int objectGroups = map.getObjectGroupCount();
     int validGroups = 0;
     
@@ -172,56 +175,64 @@ public class GameLevel {
     }
     
     for (int i = 0; i < objectGroups; ++i) {
-      SpawnPoint spawn = null;
-      
-      Queue<CheckPoint> checkpoints = new PriorityQueue<CheckPoint>();
+      InputSignal<CopyableVector2f> spawnPos = null;
+      InputSignal<CopyableFloat> spawnDuration = null;
+      InputSignal<CopyableFloat> spawnInterval = null;
+      InputSignal<CopyableFloat> lullDuration = null;
+      CopyableList<CheckPoint> checkpoints = new CopyableList<CheckPoint>();
       Vector2f goal = null;
       
       for (int j = 0; j < map.getObjectCount(i); ++j) {
         String s = map.getObjectType(i, j);
-        Vector2f position = new Vector2f((float) map.getObjectX(i, j) / (float) map.getTileWidth(),
+        Vector2f pos = new Vector2f((float) map.getObjectX(i, j) / (float) map.getTileWidth(),
             (float) map.getObjectY(i, j) / (float) map.getTileHeight());
         
         if (s.equalsIgnoreCase("Checkpoint")) {
           //add to checkpoint queue
-          
           try {
-            checkpoints.add(new CheckPoint(Integer.parseInt(map.getObjectName(i, j)), position));
+            checkpoints.add(new CheckPoint(Integer.parseInt(map.getObjectName(i, j)), pos));
           } catch (NumberFormatException e) {
             // Goggles.
           }
         } else if (s.equalsIgnoreCase("Spawn")) {
           //create spawn point
-          
-          if (spawn == null) {
+          if (spawnPos == null) {
             try {
-              spawn = new SpawnPoint(position,
-                  Float.parseFloat(map.getObjectProperty(i, j, "spawnDuration", "5")),
-                  Float.parseFloat(map.getObjectProperty(i, j, "spawnInterval", "1")),
-                  Float.parseFloat(map.getObjectProperty(i, j, "lullDuration", "20")));
-
+              spawnPos = new Signal<CopyableVector2f>(new CopyableVector2f(pos));
+              spawnDuration = new Signal<CopyableFloat>(new CopyableFloat(Float.parseFloat(map.getObjectProperty(i, j, "spawnDuration", "5"))));
+              spawnInterval = new Signal<CopyableFloat>(new CopyableFloat(Float.parseFloat(map.getObjectProperty(i, j, "spawnInterval", "1"))));
+              lullDuration = new Signal<CopyableFloat>(new CopyableFloat(Float.parseFloat(map.getObjectProperty(i, j, "lullDuration", "20"))));
             } catch (NumberFormatException e) {
-              // Goggles.
+              spawnPos = null;
+              spawnDuration = null;
+              spawnInterval = null;
+              lullDuration = null;
             }
           }
         } else if (s.equalsIgnoreCase("Goal")) {
           //set goal
           
           if (goal == null) {
-            goal = position;
+            goal = pos;
           }
         }
       }
       
-      if (spawn != null || goal != null) {
+      if (spawnPos != null || goal != null) {
         validGroups++;
         
-        //add to list of spawns
+        Collections.sort(checkpoints);
+        checkpoints.add(new CheckPoint(checkpoints.getLast().index + 1, goal));
         
-        spawn.setCheckPoints(checkpoints);
-        spawn.setGoal(goal);
+        SpawnBehaviour spawn = new SpawnBehaviour(new Signal<CopyableLong>(new CopyableLong(System.nanoTime())),
+                                                  spawnPos,
+                                                  new Signal<CopyableList<CheckPoint>>(checkpoints),
+                                                  spawnDuration,
+                                                  spawnInterval,
+                                                  lullDuration,
+                                                  spawnListener);
         
-        this.spawns.add(spawn);
+        behaviourListener.handleEvent(new GenericEvent(spawn, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, System.nanoTime()));
       }
     }
     
@@ -267,29 +278,23 @@ public class GameLevel {
     }
   }
   
-  public void update(CreepManager cm, float dt) {
-    for (SpawnPoint sp : this.spawns) {
-      sp.update(cm, dt);
-    }
-  }
+//  public Tower spawnTower(Tower.Type type, Vector2f pos) {
+//    Tower t =  Tower.createTower(type, pos);
+//    if (this.spawnTower(t)) {
+//      return t;
+//    } else {
+//      return null;
+//    }
+//  }
   
-  public Tower spawnTower(Tower.Type type, Vector2f pos) {
-    Tower t =  Tower.createTower(type, pos);
-    if (this.spawnTower(t)) {
-      return t;
-    } else {
-      return null;
-    }
-  }
-  
-  private boolean spawnTower(Tower t) {
-    if (t == null) {
-      return false;
-    } else if (t.position.x >= 0 && t.position.x < this.size.width &&
-        t.position.y >= 0 && t.position.y < this.size.height) {
-      return this.board[(int) Math.floor(t.position.x)][(int) Math.floor(t.position.y)].placeTower(t.sprite);
-    } else {
-      return false;
-    }
-  }
+//  private boolean spawnTower(Tower t) {
+//    if (t == null) {
+//      return false;
+//    } else if (t.position.x >= 0 && t.position.x < this.size.width &&
+//        t.position.y >= 0 && t.position.y < this.size.height) {
+//      return this.board[(int) Math.floor(t.position.x)][(int) Math.floor(t.position.y)].placeTower(t.sprite);
+//    } else {
+//      return false;
+//    }
+//  }
 }

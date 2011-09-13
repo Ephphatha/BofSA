@@ -21,7 +21,9 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
+
+import au.edu.csu.bofsa.CheckPoint;
 
 
 /**
@@ -32,8 +34,8 @@ public class CollisionEvent extends Event {
 
   private static final long serialVersionUID = -6947161911179324386L;
 
-  public CollisionEvent(Object source, CheckPoint value, long time) {
-    super(source, value, time);
+  public CollisionEvent(Object source, CheckPoint value, Type type, long time) {
+    super(source, value, type, time);
   }
 
 }

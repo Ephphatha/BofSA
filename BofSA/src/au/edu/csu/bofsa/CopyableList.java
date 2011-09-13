@@ -23,25 +23,32 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.concurrent.Callable;
+import java.util.LinkedList;
 
 /**
  * @author ephphatha
  *
  */
-public class Switcher<T extends Copyable<T>> implements Callable<Boolean> {
+public class CopyableList<T> extends LinkedList<T> implements Copyable<CopyableList<T>> {
 
-  protected Behaviour<T> behaviour;
-  
-  @Override
-  public Boolean call() {
-    return this.behaviour.call();
+  private static final long serialVersionUID = -2044533855255061995L;
+
+  public CopyableList() {
+    super();
   }
 
-  public Behaviour<T> switchTo(Behaviour<T> behaviour) {
-    Behaviour<T> temp = this.behaviour;
-    this.behaviour = behaviour;
-    this.behaviour.setSignal(temp.getSignal());
-    return temp;
+  public CopyableList(CopyableList<T> copyableList) {
+    super(copyableList);
+  }
+
+  @Override
+  public CopyableList<T> copy() {
+    return new CopyableList<T>(this);
+  }
+
+  @Override
+  public void copy(CopyableList<T> rhs) {
+    this.clear();
+    this.addAll(rhs);
   }
 }

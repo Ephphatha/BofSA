@@ -23,40 +23,19 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Signals.InputSignal;
 
 /**
  * @author ephphatha
  *
  */
-public class Stream implements EventSource, EventSink {
-  protected Set<EventSink> sinks;
+public class Pipe<T> {
+  public final InputSignal<T> signal;
+  public final EventSink sink;
   
-  public Stream() {
-    this.sinks = new ConcurrentSkipListSet<EventSink>();
+  public Pipe(InputSignal<T> signal, EventSink sink) {
+    this.signal = signal;
+    this.sink = sink;
   }
-
-  @Override
-  public void addSink(EventSink sink) {
-    this.sinks.add(sink);
-  }
-
-  @Override
-  public void removeSink(EventSink sink) {
-    this.sinks.remove(sink);
-  }
-
-  @Override
-  public void handleEvent(Event event) {
-    this.notifySinks(event);
-  }
-
-  @Override
-  public void notifySinks(Event event) {
-    for (EventSink s : this.sinks) {
-      s.handleEvent(event);
-    }
-  }
-
 }

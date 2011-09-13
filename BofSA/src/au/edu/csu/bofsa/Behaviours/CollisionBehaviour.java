@@ -23,18 +23,18 @@
  */
 package au.edu.csu.bofsa.Behaviours;
 
-import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CheckPoint;
-import au.edu.csu.bofsa.CollisionEvent;
 import au.edu.csu.bofsa.CopyableBoolean;
 import au.edu.csu.bofsa.CopyableFloat;
 import au.edu.csu.bofsa.CopyableVector2f;
-import au.edu.csu.bofsa.Event;
-import au.edu.csu.bofsa.EventSink;
-import au.edu.csu.bofsa.EventSource;
-import au.edu.csu.bofsa.InputSignal;
-import au.edu.csu.bofsa.Signal;
-import au.edu.csu.bofsa.Stream;
+import au.edu.csu.bofsa.Events.CollisionEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.EventSource;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
@@ -69,8 +69,8 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
     while (!this.events.isEmpty()) {
       Event e = this.events.poll();
       
-      if (e.value instanceof Event.Generic) {
-        if ((Event.Generic)e.value == Event.Generic.DEATH) {
+      if (e instanceof GenericEvent) {
+        if ((GenericEvent.Message)e.value == GenericEvent.Message.DEATH) {
           return false;
         }
       }
@@ -81,7 +81,7 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
     
     if (objPos.distanceSquared(colPos.position) <= Math.pow(this.radius.read().getValue(), 2)) {
       if (this.signal.read().getValue() == false) {
-        this.notifySinks(new CollisionEvent(this, this.collider.read(), System.nanoTime()));
+        this.notifySinks(new CollisionEvent(this, this.collider.read(), Event.Type.TARGETTED, System.nanoTime()));
         this.signal.write(new CopyableBoolean(true));
       }
     } else {

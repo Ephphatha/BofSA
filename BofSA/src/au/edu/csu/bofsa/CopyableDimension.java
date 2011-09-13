@@ -23,14 +23,29 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.Queue;
+import java.awt.Dimension;
 
 /**
  * @author ephphatha
  *
  */
-public interface CreepManager {
-  
-  public void spawnCreep(CopyableVector2f position,
-      Queue<CheckPoint> checkpoints);
+public class CopyableDimension extends Dimension implements Copyable<CopyableDimension> {
+
+  private static final long serialVersionUID = 2461156637013371773L;
+
+  public CopyableDimension(int width, int height) {
+    super(width, height);
+  }
+
+  @Override
+  public void copy(CopyableDimension rhs) {
+    this.height = rhs.height;
+    this.width = rhs.width;
+  }
+
+  @Override
+  public CopyableDimension copy() {
+    return new CopyableDimension(this.width, this.height);
+  }
+
 }

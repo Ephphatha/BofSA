@@ -21,14 +21,26 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
 
-import org.newdawn.slick.Graphics;
+import au.edu.csu.bofsa.CopyablePoint;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public class TowerSpawnEvent extends Event {
+
+  private static final long serialVersionUID = 1104484675456258750L;
+
+  /**
+   * @param source
+   * @param value
+   * @param type
+   * @param time
+   */
+  public TowerSpawnEvent(Object source, CopyablePoint value, Type type, long time) {
+    super(source, value, type, time);
+  }
+
 }

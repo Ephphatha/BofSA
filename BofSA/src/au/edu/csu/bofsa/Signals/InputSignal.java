@@ -21,14 +21,14 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
-
-import org.newdawn.slick.Graphics;
+package au.edu.csu.bofsa.Signals;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public interface InputSignal<T> {
+  public T read();
+  
+  public long getTimeStamp();
 }

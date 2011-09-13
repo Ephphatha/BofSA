@@ -21,30 +21,29 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
 
-import java.util.EventObject;
+import java.util.concurrent.Callable;
+
+import au.edu.csu.bofsa.Copyable;
 
 /**
  * @author ephphatha
  *
  */
-public class Event extends EventObject {
+public class Switcher<T extends Copyable<T>> implements Callable<Boolean> {
 
-  private static final long serialVersionUID = 4217150846147361214L;
+  protected Behaviour<T> behaviour;
   
-  public final Object value;
-  public final long time;
-  
-  public static enum Generic {
-    DEATH,
-    ADD_DRAWABLE,
-    REMOVE_DRAWABLE
+  @Override
+  public Boolean call() {
+    return this.behaviour.call();
   }
 
-  public Event(Object source, Object value, long time) {
-    super(source);
-    this.value = value;
-    this.time = time;
+  public Behaviour<T> switchTo(Behaviour<T> behaviour) {
+    Behaviour<T> temp = this.behaviour;
+    this.behaviour = behaviour;
+    this.behaviour.setSignal(temp.getSignal());
+    return temp;
   }
 }

@@ -26,11 +26,12 @@ package au.edu.csu.bofsa.Behaviours;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CheckPoint;
-import au.edu.csu.bofsa.Event;
-import au.edu.csu.bofsa.Signal;
-import au.edu.csu.bofsa.Stream;
+import au.edu.csu.bofsa.Events.CollisionEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
@@ -43,11 +44,12 @@ public class WaypointBehaviour extends Behaviour<CheckPoint> {
 
   public WaypointBehaviour(Signal<CheckPoint> goal, Queue<CheckPoint> waypoints, Stream creepStream) {
     super(goal);
-    this.waypoints = new LinkedList<CheckPoint>(waypoints);
     
-    if (this.waypoints.isEmpty()) {
+    if (waypoints.isEmpty()) {
       throw new IllegalArgumentException("Must be at least one waypoint.");
     }
+    
+    this.waypoints = new LinkedList<CheckPoint>(waypoints);
     
     this.signal.write(this.waypoints.poll());
     
@@ -64,16 +66,16 @@ public class WaypointBehaviour extends Behaviour<CheckPoint> {
       while (!this.events.isEmpty()) {
         Event e = this.events.poll();
         
-        if (e.value instanceof Event.Generic) {
-          if ((Event.Generic)e.value == Event.Generic.DEATH) {
-            return false;
-          }
-        } else if (e.value instanceof CheckPoint) {
+        if (e instanceof CollisionEvent) {
           if (this.waypoints.isEmpty()) {
-            this.creepStream.handleEvent(new Event(this, Event.Generic.DEATH, System.nanoTime()));
+            this.creepStream.handleEvent(new GenericEvent(this, GenericEvent.Message.DEATH, Event.Type.BROADCAST, System.nanoTime()));
             return false;
           } else {
             this.signal.write(this.waypoints.poll());
+          }
+        } else if (e instanceof GenericEvent) {
+          if (e.value == GenericEvent.Message.DEATH) {
+            return false;
           }
         }
       }

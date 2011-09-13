@@ -21,14 +21,39 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
 
-import org.newdawn.slick.Graphics;
+import au.edu.csu.bofsa.Copyable;
 
 /**
  * @author ephphatha
  *
  */
-public interface Drawable {
-  public void draw(Graphics g);
+public class CopyableInteger implements Copyable<CopyableInteger> {
+  protected int value;
+
+  /**
+   * 
+   */
+  public CopyableInteger() {
+    this.value = 0;
+  }
+  
+  public CopyableInteger(int value) {
+    this.value = value;
+  }
+
+  @Override
+  public CopyableInteger copy() {
+    return new CopyableInteger(this.value);
+  }
+
+  @Override
+  public void copy(CopyableInteger rhs) {
+    this.value = rhs.getValue();
+  }
+
+  public int getValue() {
+    return this.value;
+  }
 }

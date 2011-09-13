@@ -21,7 +21,7 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Behaviours;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -29,11 +29,17 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import au.edu.csu.bofsa.Copyable;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
+
 /**
  * @author ephphatha
  *
  */
-public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink, Comparable<Behaviour<?>> {
+public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink, Comparable<Object> {
   
   protected long lastStartTime;
   protected long lastEndTime;
@@ -98,7 +104,7 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     return this.lastEndTime;
   }
   
-  public int compareTo(Behaviour<?> o) {
-    return this.hashCode()- o.hashCode();
+  public int compareTo(Object o) {
+    return this.hashCode() - o.hashCode();
   }
 }

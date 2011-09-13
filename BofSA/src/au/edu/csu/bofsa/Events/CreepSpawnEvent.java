@@ -21,35 +21,43 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa;
+package au.edu.csu.bofsa.Events;
 
+import java.util.Queue;
+
+import org.newdawn.slick.geom.Vector2f;
+
+import au.edu.csu.bofsa.CheckPoint;
 
 /**
  * @author ephphatha
  *
  */
-public class Signal<T extends Copyable<T>> implements InputSignal<T> {
-  protected T buffer;
-  protected long timeStamp;
-  
-  public Signal(final T value) {
-    this.write(value);
+public class CreepSpawnEvent extends Event {
+
+  private static final long serialVersionUID = 7750426419085883272L;
+
+  public static class SpawnEventParameters {
+    public Vector2f position;
+    public Queue<CheckPoint> waypoints;
+    
+    public SpawnEventParameters(Vector2f position, Queue<CheckPoint> waypoints) {
+      this.position = position;
+      this.waypoints = waypoints;
+    }
   }
   
-  public void write(final T newValue) {
-    write(newValue, System.nanoTime());
+  /**
+   * @param source
+   * @param params
+   * @param time
+   */
+  public CreepSpawnEvent(Object source, SpawnEventParameters params, Type type, long time) {
+    super(source, params, type, time);
+    
+    synchronized (System.out) {
+      System.out.println("Spawn event created at " + Long.toString(time));
+    }
   }
-  
-  public void write(final T newValue, long timeStamp) {
-    this.buffer = newValue.copy();
-    this.timeStamp = timeStamp;
-  }
-  
-  public final T read() {
-    return this.buffer.copy();
-  }
-  
-  public long getTimeStamp() {
-    return this.timeStamp;
-  }
+
 }

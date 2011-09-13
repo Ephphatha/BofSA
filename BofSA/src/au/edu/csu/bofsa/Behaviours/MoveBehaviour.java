@@ -23,12 +23,12 @@
  */
 package au.edu.csu.bofsa.Behaviours;
 
-import au.edu.csu.bofsa.Behaviour;
 import au.edu.csu.bofsa.CopyableVector2f;
-import au.edu.csu.bofsa.Event;
-import au.edu.csu.bofsa.InputSignal;
-import au.edu.csu.bofsa.Signal;
-import au.edu.csu.bofsa.Stream;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
 
 
 /**
@@ -57,8 +57,8 @@ public class MoveBehaviour extends Behaviour<CopyableVector2f> {
     while (!this.events.isEmpty()) {
       Event e = this.events.poll();
       
-      if (e.value instanceof Event.Generic) {
-        if ((Event.Generic)e.value == Event.Generic.DEATH) {
+      if (e instanceof GenericEvent) {
+        if ((GenericEvent.Message)e.value == GenericEvent.Message.DEATH) {
           return false;
         }
       }
