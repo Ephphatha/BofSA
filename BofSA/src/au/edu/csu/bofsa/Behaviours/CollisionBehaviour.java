@@ -48,7 +48,12 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
   
   protected EventSink creepStream;
   
-  public CollisionBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> object, InputSignal<CopyableFloat> radius, InputSignal<CheckPoint> collider, Stream creepStream) {
+  public CollisionBehaviour(
+      Signal<CopyableBoolean> signal,
+      InputSignal<CopyableVector2f> object,
+      InputSignal<CopyableFloat> radius,
+      InputSignal<CheckPoint> collider,
+      Stream creepStream) {
     super(signal);
 
     this.addInput(object);
@@ -81,7 +86,13 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
     
     if (objPos.distanceSquared(colPos.position) <= Math.pow(this.radius.read().getValue(), 2)) {
       if (this.signal.read().getValue() == false) {
-        this.notifySinks(new CollisionEvent(this, this.collider.read(), Event.Type.TARGETTED, System.nanoTime()));
+        this.notifySinks(
+            new CollisionEvent(
+                this,
+                this.collider.read(),
+                Event.Type.TARGETTED,
+                System.nanoTime()));
+        
         this.signal.write(new CopyableBoolean(true));
       }
     } else {

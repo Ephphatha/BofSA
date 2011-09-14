@@ -130,7 +130,13 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
   protected Image getSpriteSheet() {
     if (this.spriteSheet == null) {
       try {
-        this.spriteSheet = new Image("assets/tower.png");
+        this.spriteSheet = new Image(this.getClass().getResource("/assets/tower.png").getRef());
+      } catch (NullPointerException n) {
+        try {
+          this.spriteSheet = new Image("/assets/tower.png");
+        } catch (SlickException e) {
+          this.spriteSheet = this.errorImage;
+        }
       } catch (SlickException e) {
         this.spriteSheet = this.errorImage;
       }

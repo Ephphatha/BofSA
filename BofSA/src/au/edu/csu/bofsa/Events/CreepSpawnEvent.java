@@ -54,10 +54,6 @@ public class CreepSpawnEvent extends Event {
    */
   public CreepSpawnEvent(Object source, SpawnEventParameters params, Type type, long time) {
     super(source, params, type, time);
-    
-    synchronized (System.out) {
-      System.out.println("Spawn event created at " + Long.toString(time));
-    }
   }
 
 }

@@ -51,7 +51,10 @@ public class InputPollingBehaviour extends Behaviour<CopyableBoolean> implements
 
   private boolean acceptingInput;
 
-  public InputPollingBehaviour(Signal<CopyableBoolean> dummy, InputSignal<CopyableDimension> tileSize, EventSink broadcastStream) {
+  public InputPollingBehaviour(
+      Signal<CopyableBoolean> dummy,
+      InputSignal<CopyableDimension> tileSize,
+      EventSink broadcastStream) {
     super(dummy);
     
     super.addInput(tileSize);
@@ -63,48 +66,43 @@ public class InputPollingBehaviour extends Behaviour<CopyableBoolean> implements
 
   @Override
   protected boolean doRun() {
+    if (this.input != null) {
+      if (this.input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
+        Dimension d = this.tileSize.read();
+        this.broadcastStream.handleEvent(
+            new TowerSpawnEvent(
+                this,
+                new CopyablePoint(this.input.getMouseX() / d.width,
+                    this.input.getMouseY() / d.height),
+                Event.Type.BROADCAST,
+                System.nanoTime()));
+      }
+    }
     return true;
   }
 
   @Override
   public void mouseClicked(int button, int x, int y, int clickCount) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void mouseDragged(int oldx, int oldy, int newx, int newy) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void mouseMoved(int oldx, int oldy, int newx, int newy) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void mousePressed(int button, int x, int y) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void mouseReleased(int button, int x, int y) {
-    if (button == Input.MOUSE_LEFT_BUTTON) {
-      Dimension d = this.tileSize.read();
-      synchronized (System.out) {
-        System.out.println("Sending a tower spawn event at location: " + Integer.toString(x/d.width) + "," + Integer.toString(y/d.height));
-      }
-      this.broadcastStream.handleEvent(new TowerSpawnEvent(this, new CopyablePoint(x / d.width, y / d.height), Event.Type.BROADCAST, System.nanoTime()));
-    }
   }
 
   @Override
   public void mouseWheelMoved(int change) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
@@ -129,74 +127,50 @@ public class InputPollingBehaviour extends Behaviour<CopyableBoolean> implements
 
   @Override
   public void keyPressed(int key, char c) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void keyReleased(int key, char c) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerButtonPressed(int controller, int button) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerButtonReleased(int controller, int button) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerDownPressed(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerDownReleased(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerLeftPressed(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerLeftReleased(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerRightPressed(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerRightReleased(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerUpPressed(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
   @Override
   public void controllerUpReleased(int controller) {
-    // TODO Auto-generated method stub
-    
   }
 
 }

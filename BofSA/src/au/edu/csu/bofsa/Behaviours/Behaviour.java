@@ -101,6 +101,10 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   abstract protected boolean doRun();
 
   public long getLastRunTime() {
+    return this.lastEndTime - this.lastStartTime;
+  }
+  
+  public long getLastCompletionTime() {
     return this.lastEndTime;
   }
   

@@ -29,7 +29,9 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
+import au.edu.csu.bofsa.Behaviours.Behaviour;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
@@ -46,6 +48,9 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   protected Queue<Callable<Boolean>> tasks;
   protected Queue<Callable<Boolean>> pendingTasks;
   
+  private AtomicLong numTasks;
+  private AtomicLong totalRunTime;
+  
   protected static enum State {
     RUNNING,
     STOPPED
@@ -58,6 +63,9 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
     this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
     this.pendingTasks = new PriorityBlockingQueue<Callable<Boolean>>();
+    
+    this.numTasks = new AtomicLong();
+    this.totalRunTime = new AtomicLong();
   }
   
   public void start() {
@@ -67,15 +75,24 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       t.start();
     }
     
+    this.startLogging();
+    
     this.state = State.RUNNING;
   }
   
+  private void startLogging() {
+    this.numTasks.set(0);
+    this.totalRunTime.set(0);
+  }
+
   public void stop() {
     this.state = State.STOPPED;
     
     for (Thread t : this.threads) {
       t.interrupt();
     }
+    
+    System.out.println(this.numTasks + " tasks executed with a combined time of " + this.totalRunTime + " nanoseconds.");
     
     this.threads.clear();
     this.tasks.clear();
@@ -110,6 +127,11 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   public void call(Callable<Boolean> c) {
     if (this.state == State.RUNNING) {
       this.tasks.add(c);
+      
+      if (c instanceof Behaviour<?>) {
+        this.numTasks.incrementAndGet();
+        this.totalRunTime.addAndGet(((Behaviour<?>) c).getLastRunTime());
+      }
     }
   }
 

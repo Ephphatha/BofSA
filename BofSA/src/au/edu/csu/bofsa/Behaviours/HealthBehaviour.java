@@ -63,7 +63,12 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
           this.signal.write(new CopyableFloat(hp));
           
           if (hp <= 0.0f) {
-            this.creepStream.handleEvent(new GenericEvent(this, GenericEvent.Message.DEATH, Event.Type.BROADCAST, e.time));
+            this.creepStream.handleEvent(
+                new GenericEvent(
+                    this,
+                    GenericEvent.Message.DEATH,
+                    Event.Type.BROADCAST,
+                    e.time));
           }
         }
       }

@@ -43,7 +43,6 @@ public class BofSA extends StateBasedGame {
    * @param args
    */
   public static void main(String[] args) {
-    System.out.println("Test");
     try {
       AppGameContainer app = new AppGameContainer(new BofSA());
       app.setDisplayMode(800, 600, false);

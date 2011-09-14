@@ -124,11 +124,9 @@ public class MainMenuState implements GameState {
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
       if (this.startButton.mousePressed(p)) {
         // Transition to game state.
-        System.out.println("Start button hit");
         game.enterState(BofSA.States.GAME.ordinal());
       } else if (this.exitButton.mousePressed(p)) {
         // Exit game.
-        System.out.println("Exit button hit");
         container.exit();
       }
     }

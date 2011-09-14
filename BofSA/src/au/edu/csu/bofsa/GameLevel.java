@@ -127,8 +127,20 @@ public class GameLevel {
     }
   }
   
-  public GameLevel(String levelName, EventSink behaviourListener, EventSink spawnListener, EventSink buildListener) throws SlickException {
-    TiledMap map = new TiledMap("levels/" + levelName + ".tmx");
+  public GameLevel(
+      String levelName,
+      EventSink behaviourListener,
+      EventSink spawnListener,
+      EventSink buildListener) throws SlickException {
+    TiledMap map;
+    
+    String fileName = "/levels/" + levelName + ".tmx";
+    
+    try {
+      map = new TiledMap(this.getClass().getResource(fileName).getRef());
+    } catch (NullPointerException e) {
+      map = new TiledMap(fileName);
+    }
     
     this.size = new Dimension(map.getWidth(), map.getHeight());
     
@@ -153,7 +165,14 @@ public class GameLevel {
         if (buildableLayer >= 0) {
           if (map.getTileImage(x, y, buildableLayer) != null) {
             attributes.add(BoardNode.Attribute.BUILDABLE);
-            buildListener.handleEvent(new BuildAreaModEvent(this, new BuildAreaModEvent.Data(BuildAreaModEvent.Data.Type.ADD_LOCATION, new CopyablePoint(x, y)), Event.Type.TARGETTED, System.nanoTime()));
+            buildListener.handleEvent(
+                new BuildAreaModEvent(
+                    this,
+                    new BuildAreaModEvent.Data(
+                        BuildAreaModEvent.Data.Type.ADD_LOCATION,
+                        new CopyablePoint(x, y)),
+                    Event.Type.TARGETTED,
+                    System.nanoTime()));
           }
         }
         
@@ -169,10 +188,6 @@ public class GameLevel {
     
     int objectGroups = map.getObjectGroupCount();
     int validGroups = 0;
-    
-    if (objectGroups > 1) {
-      System.out.println("Multiple object groups detected. Assuming multiple spawns");
-    }
     
     for (int i = 0; i < objectGroups; ++i) {
       InputSignal<CopyableVector2f> spawnPos = null;
@@ -224,22 +239,26 @@ public class GameLevel {
         Collections.sort(checkpoints);
         checkpoints.add(new CheckPoint(checkpoints.getLast().index + 1, goal));
         
-        SpawnBehaviour spawn = new SpawnBehaviour(new Signal<CopyableLong>(new CopyableLong(System.nanoTime())),
-                                                  spawnPos,
-                                                  new Signal<CopyableList<CheckPoint>>(checkpoints),
-                                                  spawnDuration,
-                                                  spawnInterval,
-                                                  lullDuration,
-                                                  spawnListener);
+        SpawnBehaviour spawn = new SpawnBehaviour(
+            new Signal<CopyableLong>(new CopyableLong(System.nanoTime())),
+            spawnPos,
+            new Signal<CopyableList<CheckPoint>>(checkpoints),
+            spawnDuration,
+            spawnInterval,
+            lullDuration,
+            spawnListener);
         
-        behaviourListener.handleEvent(new GenericEvent(spawn, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, System.nanoTime()));
+        behaviourListener.handleEvent(
+            new GenericEvent(
+                spawn,
+                GenericEvent.Message.NEW_BEHAVIOUR,
+                Event.Type.TARGETTED,
+                System.nanoTime()));
       }
     }
     
     if (validGroups <= 0) {
-      //throw error, no spawn point defined.
-      
-      System.out.println("No valid spawn point defined");
+      // TODO throw error, no spawn point defined.
     }
   }
   

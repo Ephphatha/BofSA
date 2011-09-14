@@ -120,6 +120,7 @@ public class InGameState implements GameState, EventSink, Comparable<Object> {
     this.scheduler.call(this.input);
     
     container.getInput().addListener(this.input);
+    this.input.setInput(container.getInput());
   }
 
   @Override

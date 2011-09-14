@@ -100,10 +100,6 @@ public class SpawnBehaviour extends Behaviour<CopyableLong> {
           this.state = State.SPAWNING;
           repeat = true;
           
-          synchronized (System.out) {
-            System.out.println("Switching to spawning state.");
-          }
-          
           this.signal.write(new CopyableLong(this.signal.read().getValue() + lullDuration), this.signal.getTimeStamp() + lullDuration);
         } else {
           repeat = false;
@@ -130,10 +126,6 @@ public class SpawnBehaviour extends Behaviour<CopyableLong> {
           this.state = State.IDLE;
           repeat = true;
 
-          synchronized (System.out) {
-            System.out.println("Switching to idle state.");
-          }
-          
           this.signal.write(new CopyableLong(this.signal.read().getValue() + spawnDuration), this.signal.getTimeStamp());
         } else {
           repeat = false;

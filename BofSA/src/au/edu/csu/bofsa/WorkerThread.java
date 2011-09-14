@@ -54,10 +54,6 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
           try {
             if (c.call()) {
               this.scheduler.call(c);
-            } else {
-              synchronized (System.out) {
-                System.out.println("Task returned false: " + c.toString());
-              }
             }
           } catch (InterruptedException e) {
             break;

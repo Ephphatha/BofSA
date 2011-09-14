@@ -100,7 +100,13 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
   protected Image getSpriteSheet() {
     if (this.spriteSheet == null) {
       try {
-        this.spriteSheet = new Image("assets/creep.png");
+        this.spriteSheet = new Image(this.getClass().getResource("/assets/creep.png").getRef());
+      } catch (NullPointerException n) {
+        try {
+          this.spriteSheet = new Image("/assets/creep.png");
+        } catch (SlickException e) {
+          this.spriteSheet = this.errorImage;
+        }
       } catch (SlickException e) {
         this.spriteSheet = this.errorImage;
       }
@@ -108,7 +114,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     
     return this.spriteSheet;
   }
-
+    
   
   public void spawnCreep(final CopyableVector2f pos, final Queue<CheckPoint> cps) {
     Sprite s;
@@ -182,10 +188,6 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         continue;
       } else if (e instanceof CreepSpawnEvent) {
         CreepSpawnEvent.SpawnEventParameters params = (SpawnEventParameters) e.value;
-        
-        synchronized (System.out) {
-          System.out.println("Spawn event received with timestamp " + Long.toString(e.time));
-        }
         
         this.spawnCreep(new CopyableVector2f(params.position), params.waypoints);
       }

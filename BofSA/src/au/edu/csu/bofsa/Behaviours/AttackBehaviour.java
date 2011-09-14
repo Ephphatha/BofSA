@@ -81,7 +81,12 @@ public class AttackBehaviour extends Behaviour<CopyableBoolean> {
       for (Pipe<CopyableVector2f> p : l) {
         if (p.signal.read().distanceSquared(this.position.read()) > Math.pow(this.range.read().getValue(), 2)) {
           this.signal.write(new CopyableBoolean(true), this.signal.getTimeStamp() + nanosPerShot);
-          p.sink.handleEvent(new DamageEvent(this, Float.valueOf(this.damage.read().getValue()), Event.Type.TARGETTED, System.nanoTime()));
+          p.sink.handleEvent(
+              new DamageEvent(
+                  this,
+                  Float.valueOf(this.damage.read().getValue()),
+                  Event.Type.TARGETTED,
+                  System.nanoTime()));
           break;
         }
       }

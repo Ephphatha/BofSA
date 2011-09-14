@@ -57,7 +57,12 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
   protected Set<EventSink> sinks;
   protected long previous;
   
-  public RenderBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> position, InputSignal<CopyableDimension> tileSize, Sprite sprite, EventSink drawWatcher) {
+  public RenderBehaviour(
+      Signal<CopyableBoolean> signal,
+      InputSignal<CopyableVector2f> position,
+      InputSignal<CopyableDimension> tileSize,
+      Sprite sprite,
+      EventSink drawWatcher) {
     super(signal);
     
     super.addInput(position);
@@ -74,7 +79,12 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
     
     this.previous = System.nanoTime();
     
-    this.handleEvent(new GenericEvent(this, GenericEvent.Message.ADD_DRAWABLE, Event.Type.TARGETTED, System.nanoTime()));
+    this.handleEvent(
+        new GenericEvent(
+            this,
+            GenericEvent.Message.ADD_DRAWABLE,
+            Event.Type.TARGETTED,
+            System.nanoTime()));
   }
 
   /**
@@ -84,7 +94,11 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
   public void draw(Graphics g) {
     CopyableVector2f pos = this.position.read();
     Dimension tile = this.tileSize.read();
-    Rectangle r = new Rectangle(pos.x * tile.width, pos.y * tile.height, tile.width, tile.height);
+    Rectangle r = new Rectangle(
+        pos.x * tile.width,
+        pos.y * tile.height,
+        tile.width,
+        tile.height);
     this.sprite.draw(g, r);
   }
 
@@ -107,22 +121,32 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
 
   @Override
   protected boolean doRun() {
+    long current = System.nanoTime();
+    
     while (!this.events.isEmpty()) {
       Event e = this.events.poll();
       
       if (e instanceof GenericEvent) {
         if ((GenericEvent.Message)e.value == GenericEvent.Message.DEATH) {
-          this.notifySinks(new GenericEvent(this, GenericEvent.Message.REMOVE_DRAWABLE, Event.Type.BROADCAST, System.nanoTime()));
+          this.notifySinks(
+              new GenericEvent(
+                  this,
+                  GenericEvent.Message.REMOVE_DRAWABLE,
+                  Event.Type.BROADCAST,
+                  current));
           return false;
         } else if ((GenericEvent.Message)e.value == GenericEvent.Message.ADD_DRAWABLE) {
-          this.notifySinks(new GenericEvent(this, GenericEvent.Message.ADD_DRAWABLE, Event.Type.BROADCAST, System.nanoTime()));
+          this.notifySinks(
+              new GenericEvent(
+                  this,
+                  GenericEvent.Message.ADD_DRAWABLE,
+                  Event.Type.BROADCAST,
+                  current));
         }
       }
     }
 
-    long current = System.nanoTime();
-    
-    this.sprite.update((float) (current - this.previous) / (1000.0f * 1000.0f * 1000.0f));
+    this.sprite.update((float) (current - this.previous) / 1.0E9f);
     
     this.previous = current;
     
