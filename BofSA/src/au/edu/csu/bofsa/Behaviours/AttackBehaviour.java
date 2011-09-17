@@ -56,17 +56,13 @@ public class AttackBehaviour extends Behaviour<CopyableBoolean> {
       InputSignal<CopyableFloat> range) {
     super(signal);
     
-    super.addInput(targets);
-    super.addInput(position);
-    super.addInput(fireRate);
-    super.addInput(damage);
-    super.addInput(range);
-    
     this.targets = targets;
     this.position = position;
     this.fireRate = fireRate;
     this.damage = damage;
     this.range = range;
+    
+    this.signal.write(new CopyableBoolean(false), System.nanoTime() - (long) ((1.0f / this.fireRate.read().getValue()) * 1.0E9f));
   }
 
   @Override
@@ -77,9 +73,12 @@ public class AttackBehaviour extends Behaviour<CopyableBoolean> {
     
     long nanosPerShot = (long) ((1.0f / this.fireRate.read().getValue()) * 1.0E9f);
     
-    while (current - this.signal.getTimeStamp() > nanosPerShot) {
+    boolean fired = true;
+    
+    while (fired == true && current - this.signal.getTimeStamp() > nanosPerShot) {
+      fired = false;
       for (Pipe<CopyableVector2f> p : l) {
-        if (p.signal.read().distanceSquared(this.position.read()) > Math.pow(this.range.read().getValue(), 2)) {
+        if (p.signal.read().distanceSquared(this.position.read()) < Math.pow(this.range.read().getValue(), 2)) {
           this.signal.write(new CopyableBoolean(true), this.signal.getTimeStamp() + nanosPerShot);
           p.sink.handleEvent(
               new DamageEvent(
@@ -87,12 +86,17 @@ public class AttackBehaviour extends Behaviour<CopyableBoolean> {
                   Float.valueOf(this.damage.read().getValue()),
                   Event.Type.TARGETTED,
                   System.nanoTime()));
+          
+          fired = true;
           break;
         }
       }
     }
     
+    if (!fired) {
+      this.signal.write(new CopyableBoolean(true), current - nanosPerShot);
+    }
+    
     return true;
   }
-
 }

@@ -47,6 +47,8 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   protected Signal<T> signal;
   protected List<InputSignal<?>> inputs;
   protected Queue<Event> events;
+  
+  protected long deltaThreshold;
 
   @SuppressWarnings("unused")
   private Behaviour() {
@@ -60,6 +62,8 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     this.lastEndTime = System.nanoTime();
     
     this.events = new ConcurrentLinkedQueue<Event>();
+    
+    this.deltaThreshold = 10000;
   }
   
   protected void addInput(InputSignal<?> input) {
@@ -88,6 +92,16 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
       return false;
     }
     
+    long current = System.nanoTime();
+    
+    if (current - this.lastStartTime < 1000) {
+      try {
+        Thread.sleep(0, (int) (Math.random() * 1000));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+    
     this.lastEndTime = System.nanoTime();
     
     return true;
@@ -100,12 +114,26 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   
   abstract protected boolean doRun();
 
+  public long getLastStartTime() {
+    return this.lastStartTime;
+  }
+
   public long getLastRunTime() {
     return this.lastEndTime - this.lastStartTime;
   }
   
   public long getLastCompletionTime() {
     return this.lastEndTime;
+  }
+  
+  public boolean isReady() {
+    for (InputSignal<?> i : this.inputs) {
+      if (this.signal.getTimeStamp() - i.getTimeStamp() > this.deltaThreshold) {
+        return false;
+      }
+    }
+    
+    return true;
   }
   
   public int compareTo(Object o) {

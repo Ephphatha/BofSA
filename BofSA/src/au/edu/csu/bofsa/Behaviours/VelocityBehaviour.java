@@ -49,8 +49,6 @@ public class VelocityBehaviour extends Behaviour<CopyableVector2f>{
     super(velocity);
 
     this.addInput(position);
-    this.addInput(goal);
-    this.addInput(maxSpeed);
     
     this.pos = position;
     this.goal = goal;

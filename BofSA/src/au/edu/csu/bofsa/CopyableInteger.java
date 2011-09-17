@@ -21,9 +21,8 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  */
-package au.edu.csu.bofsa.Behaviours;
+package au.edu.csu.bofsa;
 
-import au.edu.csu.bofsa.Copyable;
 
 /**
  * @author ephphatha

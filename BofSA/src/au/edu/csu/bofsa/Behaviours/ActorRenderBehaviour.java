@@ -25,12 +25,16 @@ package au.edu.csu.bofsa.Behaviours;
 
 import java.awt.Dimension;
 
+import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.ShapeFill;
 import org.newdawn.slick.geom.Rectangle;
+import org.newdawn.slick.geom.Shape;
 import org.newdawn.slick.geom.Vector2f;
 
 import au.edu.csu.bofsa.CopyableBoolean;
 import au.edu.csu.bofsa.CopyableDimension;
+import au.edu.csu.bofsa.CopyableFloat;
 import au.edu.csu.bofsa.CopyableVector2f;
 import au.edu.csu.bofsa.Sprite;
 import au.edu.csu.bofsa.Events.EventSink;
@@ -46,10 +50,14 @@ public class ActorRenderBehaviour extends RenderBehaviour{
   
   protected InputSignal<CopyableVector2f> velocity;
   
+  protected InputSignal<CopyableFloat> health;
+
+  protected InputSignal<CopyableFloat> maxHealth;
+  
   protected Sprite.SequencePoint[][] sequences;
   
   protected Direction currentDir;
-  
+
   public static enum Direction {
     SOUTH,
     NORTH,
@@ -57,13 +65,44 @@ public class ActorRenderBehaviour extends RenderBehaviour{
     EAST
   }
   
-  public ActorRenderBehaviour(Signal<CopyableBoolean> signal, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity, InputSignal<CopyableDimension> tileSize,
-                              Sprite sprite, Sprite.SequencePoint[][] sequences, Stream creepStream, EventSink drawWatcher) {
+  public static class SolidFill implements ShapeFill {
+    private Color colour;
+
+    public SolidFill(Color c) {
+      this.colour = c;
+    }
+
+    @Override
+    public Color colorAt(Shape shape, float x, float y) {
+      return this.colour;
+    }
+
+    @Override
+    public Vector2f getOffsetAt(Shape shape, float x, float y) {
+      return new Vector2f(0, 0);
+    }
+
+    public void setColor(Color colour) {
+      this.colour = colour;
+    }
+  }
+  
+  public ActorRenderBehaviour(
+      Signal<CopyableBoolean> signal,
+      InputSignal<CopyableVector2f> position,
+      InputSignal<CopyableVector2f> velocity,
+      InputSignal<CopyableFloat> health,
+      InputSignal<CopyableFloat> maxHealth,
+      InputSignal<CopyableDimension> tileSize,
+      Sprite sprite,
+      Sprite.SequencePoint[][] sequences,
+      Stream creepStream,
+      EventSink drawWatcher) {
     super(signal, position, tileSize, sprite, drawWatcher);
     
-    this.addInput(velocity);
-    
     this.velocity = velocity;
+    this.health = health;
+    this.maxHealth = maxHealth;
     
     if (sequences.length < 4) {
       throw new IllegalArgumentException("Must be at least four animation sequences.");
@@ -110,6 +149,20 @@ public class ActorRenderBehaviour extends RenderBehaviour{
     Dimension tile = this.tileSize.read();
     Rectangle r = new Rectangle(pos.x * tile.width - tile.width / 4.0f, pos.y * tile.height - tile.height / 4.0f, tile.width / 2.0f, tile.height / 2.0f);
     this.sprite.draw(g, r);
+    
+    SolidFill s = new SolidFill(Color.red);
+    
+    r.setHeight(r.getHeight() * 0.1f);
+    
+    g.draw(r, s);
+    
+    s.setColor(Color.green);
+    
+    float hpRatio = this.health.read().getValue() / this.maxHealth.read().getValue();
+    
+    r.setWidth(r.getWidth() * hpRatio);
+    
+    g.draw(r, s);
   }
 
   private void setAnimationSequence(Direction dir) {

@@ -37,18 +37,18 @@ import au.edu.csu.bofsa.Signals.Signal;
  */
 public class MoveBehaviour extends Behaviour<CopyableVector2f> {
   
-  protected InputSignal<CopyableVector2f> pos;
   protected InputSignal<CopyableVector2f> vel;
   
-  public MoveBehaviour(Signal<CopyableVector2f> targetPosition, InputSignal<CopyableVector2f> position, InputSignal<CopyableVector2f> velocity, Stream creepStream) {
-    super(targetPosition);
+  public MoveBehaviour(
+      Signal<CopyableVector2f> position,
+      InputSignal<CopyableVector2f> velocity,
+      Stream creepStream) {
+    super(position);
 
-    this.addInput(position);
     this.addInput(velocity);
     
-    this.pos = position;
     this.vel = velocity;
-    
+
     creepStream.addSink(this);
   }
 
@@ -65,11 +65,10 @@ public class MoveBehaviour extends Behaviour<CopyableVector2f> {
     }
     
     CopyableVector2f vel = this.vel.read();
-    CopyableVector2f pos = this.pos.read();
+    CopyableVector2f pos = this.signal.read();
     
-    long lastUpdate = this.pos.getTimeStamp();
     long current = System.nanoTime();
-    float delta = (float) (current - lastUpdate) / (1000.0f * 1000.0f * 1000.0f);
+    float delta = (float) (current - this.signal.getTimeStamp()) / (1.0E9f);
     vel.scale(delta);
     
     pos.add(vel);

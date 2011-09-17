@@ -65,9 +65,6 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
       EventSink drawWatcher) {
     super(signal);
     
-    super.addInput(position);
-    super.addInput(tileSize);
-    
     this.position = position;
     this.tileSize = tileSize;
     
@@ -146,11 +143,10 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
       }
     }
 
-    this.sprite.update((float) (current - this.previous) / 1.0E9f);
+    this.sprite.update((float) (current - this.signal.getTimeStamp()) / 1.0E9f);
     
-    this.previous = current;
+    this.signal.write(new CopyableBoolean(true), current);
     
     return true;
   }
-
 }

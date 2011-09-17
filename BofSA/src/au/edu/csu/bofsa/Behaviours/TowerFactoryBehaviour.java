@@ -92,9 +92,6 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
   public TowerFactoryBehaviour(Signal<CopyableList<CopyablePoint>> signal, InputSignal<CopyableDimension> tileSize, InputSignal<CopyableList<Pipe<CopyableVector2f>>> creeps, EventSink drawWatcher, EventSink behaviourWatcher) {
     super(signal);
     
-    super.addInput(tileSize);
-    super.addInput(creeps);
-    
     this.tileSize = tileSize;
     this.creeps = creeps;
     
@@ -160,22 +157,14 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
     }
     s.setFrameSequence(a);
 
-    //switch (type) {
-    //case CLERK:
-    //  attributes.setFireRate(10.0f);
-    //  attributes.setRange(4.0f);
-    //  attributes.setDamage(2.0f);
-    //  break;
-    //}
-
     long birthTime = System.nanoTime();
     
     Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(new CopyableVector2f(value.x, value.y));
     
     AttackBehaviour ab = new AttackBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), this.creeps, position,
-        new Signal<CopyableFloat>(new CopyableFloat(0.1f)),
-        new Signal<CopyableFloat>(new CopyableFloat(4.0f)),
-        new Signal<CopyableFloat>(new CopyableFloat(2.0f)));
+        new Signal<CopyableFloat>(new CopyableFloat(2.0f)),
+        new Signal<CopyableFloat>(new CopyableFloat(8.0f)),
+        new Signal<CopyableFloat>(new CopyableFloat(4.0f)));
 
     this.behaviourWatcher.handleEvent(new GenericEvent(ab, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
     
@@ -200,7 +189,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
             this.signal.write(c);
             break;
           }
-            
+
           case REMOVE_LOCATION:
           {
             CopyableList<CopyablePoint> c = this.signal.read();
@@ -208,13 +197,12 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
             this.signal.write(c);
             break;
           }
-          
-          case REMOVE_ALL:
-          {
+          }
+        } else if (e instanceof GenericEvent) {
+          if (e.value == GenericEvent.Message.FORGET_ALL) {
             CopyableList<CopyablePoint> c = this.signal.read();
             c.clear();
             this.signal.write(c);
-          }
           }
         } else if (e instanceof TowerSpawnEvent) {
           CopyableList<CopyablePoint> c = this.signal.read();
@@ -227,5 +215,9 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
       }
     }
     return true;
+  }
+  
+  public boolean isReady() {
+    return !this.events.isEmpty();
   }
 }

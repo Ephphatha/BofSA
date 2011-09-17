@@ -137,39 +137,100 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     
     Stream creepStream = new Stream();
     
-    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(100.0f));
+    creepStream.addSink(this);
     
-    HealthBehaviour h = new HealthBehaviour(health, creepStream);
+    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(64.0f));
     
-    this.behaviourWatcher.handleEvent(new GenericEvent(h, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    HealthBehaviour h = new HealthBehaviour(
+        health,
+        creepStream,
+        this);
+    
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            h,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
     Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(pos);
     
     Signal<CopyableVector2f> velocity = new Signal<CopyableVector2f>(new CopyableVector2f(0, 0));
     
-    MoveBehaviour m = new MoveBehaviour(position, position, velocity, creepStream);
+    MoveBehaviour m = new MoveBehaviour(
+        position,
+        velocity,
+        creepStream);
     
-    this.behaviourWatcher.handleEvent(new GenericEvent(m, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            m,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
     Signal<CheckPoint> cp = new Signal<CheckPoint>(cps.peek());
     
-    WaypointBehaviour w = new WaypointBehaviour(cp, cps, creepStream);
+    WaypointBehaviour w = new WaypointBehaviour(
+        cp,
+        cps,
+        creepStream);
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(w, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            w,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
     Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
     
-    VelocityBehaviour v = new VelocityBehaviour(velocity, position, cp, speed, creepStream);
+    VelocityBehaviour v = new VelocityBehaviour(
+        velocity,
+        position,
+        cp,
+        speed,
+        creepStream);
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(v, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            v,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
-    CollisionBehaviour c = new CollisionBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, new Signal<CopyableFloat>(new CopyableFloat(0.25f)), cp, creepStream);
+    CollisionBehaviour c = new CollisionBehaviour(
+        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+        position,
+        new Signal<CopyableFloat>(new CopyableFloat(0.25f)),
+        cp,
+        creepStream);
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(c, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            c,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
-    ActorRenderBehaviour arb = new ActorRenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, velocity, this.tileSize, s, a, creepStream, this.drawWatcher);
+    ActorRenderBehaviour arb = new ActorRenderBehaviour(
+        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+        position,
+        velocity,
+        health,
+        new Signal<CopyableFloat>(health.read()),
+        this.tileSize,
+        s,
+        a,
+        creepStream,
+        this.drawWatcher);
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(arb, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    this.behaviourWatcher.handleEvent(
+        new GenericEvent(
+            arb,
+            GenericEvent.Message.NEW_BEHAVIOUR,
+            Event.Type.TARGETTED,
+            birthTime));
     
     CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read();
     
@@ -186,6 +247,22 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
       
       if (e == null) {
         continue;
+      } else if (e instanceof GenericEvent) {
+        if (e.value == GenericEvent.Message.DEATH && e.getSource() instanceof Stream) {
+          CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read();
+          
+          for (int i = temp.size() - 1; i >= 0; --i) {
+            if (temp.get(i).sink.equals(e.getSource())) {
+              temp.remove(i);
+            }
+          }
+          
+          this.signal.write(temp);
+        } else if (e.value == GenericEvent.Message.FORGET_ALL) {
+          CopyableList<Pipe<CopyableVector2f>> c = this.signal.read();
+          c.clear();
+          this.signal.write(c);
+        }
       } else if (e instanceof CreepSpawnEvent) {
         CreepSpawnEvent.SpawnEventParameters params = (SpawnEventParameters) e.value;
         
@@ -193,5 +270,9 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
       }
     }
     return true;
+  }
+  
+  public boolean isReady() {
+    return !this.events.isEmpty();
   }
 }

@@ -28,8 +28,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import au.edu.csu.bofsa.Behaviours.Behaviour;
 import au.edu.csu.bofsa.Events.Event;
@@ -45,11 +46,15 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   protected List<Thread> threads;
   protected Queue<WorkerThread> idleThreads;
   
-  protected Queue<Callable<Boolean>> tasks;
-  protected Queue<Callable<Boolean>> pendingTasks;
+  protected Queue<Behaviour<?>> tasks;
+  protected List<Behaviour<?>> waitingTasks;
+  protected Lock waitingLock;
+  protected Queue<Behaviour<?>> unsortedTasks;
   
   private AtomicLong numTasks;
   private AtomicLong totalRunTime;
+  
+  private Logger logger;
   
   protected static enum State {
     RUNNING,
@@ -58,14 +63,32 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   
   protected State state;
   
+  protected static enum Mode {
+    UNORDERED,
+    ORDERED_RETRY,
+    ORDERED_PRECOMPUTE
+  }
+  
+  protected Mode mode;
+  
   public Scheduler() {
     this.threads = new LinkedList<Thread>();
     this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
-    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
-    this.pendingTasks = new PriorityBlockingQueue<Callable<Boolean>>();
+    
+    this.tasks = new ConcurrentLinkedQueue<Behaviour<?>>();
+    this.waitingTasks = new LinkedList<Behaviour<?>>();
+    this.waitingLock = new ReentrantLock();
+    this.unsortedTasks = new ConcurrentLinkedQueue<Behaviour<?>>();
     
     this.numTasks = new AtomicLong();
     this.totalRunTime = new AtomicLong();
+    
+    this.logger = new Logger();
+    this.logger.start();
+    
+    this.state = State.STOPPED;
+    
+    this.mode = Mode.ORDERED_PRECOMPUTE;
   }
   
   public void start() {
@@ -83,6 +106,8 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   private void startLogging() {
     this.numTasks.set(0);
     this.totalRunTime.set(0);
+    
+    this.logger.startLogging();
   }
 
   public void stop() {
@@ -92,19 +117,60 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       t.interrupt();
     }
     
+    this.stopLogging();
+    
     System.out.println(this.numTasks + " tasks executed with a combined time of " + this.totalRunTime + " nanoseconds.");
     
     this.threads.clear();
     this.tasks.clear();
-    this.pendingTasks.clear();
+  }
+  
+  private void stopLogging() {
+    this.logger.stopLogging();
   }
   
   public void slice(WorkerThread worker) {
     if (this.state == State.STOPPED) {
       return;
     }
+    
+    Behaviour<?> t = this.tasks.poll();
 
-    Callable<Boolean> t = this.tasks.poll();
+    switch (this.mode) {
+    case UNORDERED:
+      break;
+      
+    case ORDERED_RETRY:
+      while (t != null && !t.isReady()) {
+        this.call(t);
+        t = this.tasks.poll();
+      }
+      break;
+      
+    case ORDERED_PRECOMPUTE:
+      if (this.waitingLock.tryLock()) {
+        try {
+          while (!this.unsortedTasks.isEmpty()) {
+            Behaviour<?> b = this.unsortedTasks.poll();
+            
+            if (b != null) {
+              this.waitingTasks.add(b);
+            }
+          }
+          
+          for (int i = this.waitingTasks.size() - 1; i >= 0; --i) {
+            if (this.waitingTasks.get(i).isReady()) {
+              Behaviour<?> b = this.waitingTasks.remove(i);
+              
+              this.tasks.add(b);
+            }
+          }
+        } finally {
+          this.waitingLock.unlock();
+        }
+      }
+    }
+
     while (t != null && !this.idleThreads.isEmpty()) {
       WorkerThread w = this.idleThreads.poll();
       
@@ -113,9 +179,44 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
         w.call(t);
   
         t = this.tasks.poll();
+        
+        switch (this.mode) {
+        case UNORDERED:
+          break;
+          
+        case ORDERED_RETRY:
+          while (t != null && !t.isReady()) {
+            this.call(t);
+            t = this.tasks.poll();
+          }
+          break;
+          
+        case ORDERED_PRECOMPUTE:
+          if (this.waitingLock.tryLock()) {
+            try {
+              while (!this.unsortedTasks.isEmpty()) {
+                Behaviour<?> b = this.unsortedTasks.poll();
+                
+                if (b != null) {
+                  this.waitingTasks.add(b);
+                }
+              }
+              
+              for (int i = this.waitingTasks.size() - 1; i >= 0; --i) {
+                if (this.waitingTasks.get(i).isReady()) {
+                  Behaviour<?> b = this.waitingTasks.remove(i);
+                  
+                  this.tasks.add(b);
+                }
+              }
+            } finally {
+              this.waitingLock.unlock();
+            }
+          }
+        }
       }
     }
-    
+
     if (t != null) {
       worker.call(t);
     } else if (this.idleThreads.size() + 1 < this.threads.size()) {
@@ -126,11 +227,28 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
 
   public void call(Callable<Boolean> c) {
     if (this.state == State.RUNNING) {
-      this.tasks.add(c);
-      
       if (c instanceof Behaviour<?>) {
+        Behaviour<?> b = (Behaviour<?>) c;
+        Long runtime = Long.valueOf(b.getLastRunTime());
+        
+        this.totalRunTime.addAndGet(runtime);
         this.numTasks.incrementAndGet();
-        this.totalRunTime.addAndGet(((Behaviour<?>) c).getLastRunTime());
+        
+        this.logger.printMessage(new Logger.Message(b.getClass().getSimpleName(), b.getLastStartTime(), runtime));
+        
+        switch (this.mode) {
+        case UNORDERED:
+        case ORDERED_RETRY:
+          this.tasks.add(b);
+          break;
+          
+        case ORDERED_PRECOMPUTE:
+          if (b.isReady()) {
+            this.tasks.add(b);
+          } else {
+            this.unsortedTasks.add(b);
+          }
+        }
       }
     }
   }

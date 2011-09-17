@@ -57,8 +57,6 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
     super(signal);
 
     this.addInput(object);
-    this.addInput(radius);
-    this.addInput(collider);
     
     this.object = object;
     this.radius = radius;

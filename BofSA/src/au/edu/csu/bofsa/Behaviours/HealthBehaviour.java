@@ -26,6 +26,7 @@ package au.edu.csu.bofsa.Behaviours;
 import au.edu.csu.bofsa.CopyableFloat;
 import au.edu.csu.bofsa.Events.DamageEvent;
 import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
 import au.edu.csu.bofsa.Events.Stream;
 import au.edu.csu.bofsa.Signals.Signal;
@@ -37,11 +38,15 @@ import au.edu.csu.bofsa.Signals.Signal;
 public class HealthBehaviour extends Behaviour<CopyableFloat> {
   
   protected Stream creepStream;
+  
+  protected EventSink controller;
 
-  public HealthBehaviour(Signal<CopyableFloat> signal, Stream creepStream) {
+  public HealthBehaviour(Signal<CopyableFloat> signal, Stream creepStream, EventSink controller) {
     super(signal);
     
     this.creepStream = creepStream;
+    
+    this.controller = controller;
     
     this.creepStream.addSink(this);
   }
@@ -54,6 +59,7 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
       if (e != null) {
         if (e instanceof GenericEvent) {
           if (e.value == GenericEvent.Message.DEATH) {
+            this.controller.handleEvent(new GenericEvent(this.creepStream, GenericEvent.Message.DEATH, Event.Type.TARGETTED, System.nanoTime()));
             return false;
           }
         } else if (e instanceof DamageEvent) {
@@ -75,5 +81,4 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
     }
     return true;
   }
-
 }

@@ -51,6 +51,7 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
       if (!this.tasks.isEmpty()) {
         do {
           Callable<Boolean> c = this.tasks.poll();
+
           try {
             if (c.call()) {
               this.scheduler.call(c);

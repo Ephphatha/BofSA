@@ -56,20 +56,15 @@ public class SpawnBehaviour extends Behaviour<CopyableLong> {
     IDLE
   }
 
-  public SpawnBehaviour(Signal<CopyableLong> lastStateChange,
-                        InputSignal<CopyableVector2f> position,
-                        InputSignal<CopyableList<CheckPoint>> checkpoints,
-                        InputSignal<CopyableFloat> spawnDuration,
-                        InputSignal<CopyableFloat> spawnInterval,
-                        InputSignal<CopyableFloat> lullDuration,
-                        EventSink creepBuilder) {
+  public SpawnBehaviour(
+      Signal<CopyableLong> lastStateChange,
+      InputSignal<CopyableVector2f> position,
+      InputSignal<CopyableList<CheckPoint>> checkpoints,
+      InputSignal<CopyableFloat> spawnDuration,
+      InputSignal<CopyableFloat> spawnInterval,
+      InputSignal<CopyableFloat> lullDuration,
+      EventSink creepBuilder) {
     super(lastStateChange);
-    
-    this.addInput(position);
-    this.addInput(checkpoints);
-    this.addInput(spawnDuration);
-    this.addInput(spawnInterval);
-    this.addInput(lullDuration);
     
     this.position = position;
     this.checkpoints = checkpoints;
@@ -114,7 +109,14 @@ public class SpawnBehaviour extends Behaviour<CopyableLong> {
         while (spawnDelta >= spawnInterval) {
           this.signal.write(this.signal.read(), this.signal.getTimeStamp() + spawnInterval);
           
-          this.creepBuilder.handleEvent(new CreepSpawnEvent(this, new CreepSpawnEvent.SpawnEventParameters(this.position.read(), this.checkpoints.read()), Event.Type.BROADCAST, this.signal.getTimeStamp()));
+          this.creepBuilder.handleEvent(
+              new CreepSpawnEvent(
+                  this,
+                  new CreepSpawnEvent.SpawnEventParameters(
+                      this.position.read(),
+                      this.checkpoints.read()),
+                  Event.Type.BROADCAST,
+                  this.signal.getTimeStamp()));
           
           spawnDelta -= spawnInterval;
           if (this.signal.getTimeStamp() - this.signal.read().getValue() >= spawnDuration) {

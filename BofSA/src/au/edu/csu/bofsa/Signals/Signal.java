@@ -32,7 +32,7 @@ import au.edu.csu.bofsa.Copyable;
  */
 public class Signal<T extends Copyable<T>> implements InputSignal<T> {
   protected T buffer;
-  protected long timeStamp;
+  protected Long timeStamp;
   
   public Signal(final T value) {
     this.write(value);
@@ -44,7 +44,7 @@ public class Signal<T extends Copyable<T>> implements InputSignal<T> {
   
   public void write(final T newValue, long timeStamp) {
     this.buffer = newValue.copy();
-    this.timeStamp = timeStamp;
+    this.timeStamp = Long.valueOf(timeStamp);
   }
   
   public final T read() {

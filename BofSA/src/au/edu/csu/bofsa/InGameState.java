@@ -36,7 +36,6 @@ import org.newdawn.slick.state.StateBasedGame;
 import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
 import au.edu.csu.bofsa.Behaviours.InputPollingBehaviour;
 import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
-import au.edu.csu.bofsa.Events.BuildAreaModEvent;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
@@ -136,7 +135,8 @@ public class InGameState implements GameState, EventSink, Comparable<Object> {
       throws SlickException {
     this.map = null;
     
-    this.towerFactory.handleEvent(new BuildAreaModEvent(this, new BuildAreaModEvent.Data(BuildAreaModEvent.Data.Type.REMOVE_ALL, null), Event.Type.TARGETTED, System.nanoTime()));
+    this.towerFactory.handleEvent(new GenericEvent(this, GenericEvent.Message.FORGET_ALL, Event.Type.TARGETTED, System.nanoTime()));
+    this.creepFactory.handleEvent(new GenericEvent(this, GenericEvent.Message.FORGET_ALL, Event.Type.TARGETTED, System.nanoTime()));
 
     this.scheduler.stop();
     

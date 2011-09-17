@@ -37,7 +37,8 @@ public class GenericEvent extends Event {
     ADD_DRAWABLE,
     REMOVE_DRAWABLE,
     NEW_BEHAVIOUR,
-    INPUT
+    INPUT,
+    FORGET_ALL
   }
 
   public GenericEvent(Object source, Message value, Type type, long time) {
