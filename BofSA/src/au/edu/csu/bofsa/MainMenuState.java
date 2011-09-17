@@ -41,7 +41,8 @@ public class MainMenuState implements GameState {
   private int stateID;
 
   Image background;
-  Button startButton,
+  Button stButton,
+         tbButton,
          exitButton;
   
   @SuppressWarnings("unused")
@@ -77,7 +78,7 @@ public class MainMenuState implements GameState {
     
     Image buttons = new Image("assets/menubuttons.png");
     
-    this.startButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f));
+    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f));
     this.exitButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.6f, 0.4f, 0.2f));
   }
 
@@ -93,7 +94,7 @@ public class MainMenuState implements GameState {
       throws SlickException {
     background.draw(0, 0, container.getWidth(), container.getHeight());
     
-    this.startButton.render(container, g);
+    this.stButton.render(container, g);
     
     this.exitButton.render(container, g);
   }
@@ -118,14 +119,14 @@ public class MainMenuState implements GameState {
     Vector2f p = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
                             (float) input.getMouseY() / (float) container.getHeight());
   
-    this.startButton.mouseMove(p);
+    this.stButton.mouseMove(p);
     this.exitButton.mouseMove(p);
     
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
-      if (this.startButton.mousePressed(p)) {
+      if (this.stButton.mousePressed(p)) {
         // Transition to game state.
         System.out.println("Start button hit");
-        game.enterState(BofSA.States.GAME.ordinal());
+        game.enterState(BofSA.States.SINGLE_THREAD.ordinal());
       } else if (this.exitButton.mousePressed(p)) {
         // Exit game.
         System.out.println("Exit button hit");

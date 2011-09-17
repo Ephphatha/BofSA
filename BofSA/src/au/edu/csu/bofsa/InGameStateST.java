@@ -40,7 +40,7 @@ import org.newdawn.slick.state.StateBasedGame;
  * @author ephphatha
  *
  */
-public class InGameState implements GameState, CreepManager {
+public class InGameStateST implements GameState, CreepManager {
   private int stateID;
   
   protected GameLevel map;
@@ -55,11 +55,11 @@ public class InGameState implements GameState, CreepManager {
   private Logger logger;
 
   @SuppressWarnings("unused")
-  private InGameState() {
+  private InGameStateST() {
     this(0);
   }
   
-  public InGameState(int id) {
+  public InGameStateST(int id) {
     this.stateID = id;
 
     this.towers = new LinkedList<Tower>();
@@ -126,7 +126,7 @@ public class InGameState implements GameState, CreepManager {
     
     long end = System.nanoTime();
     
-    this.logger.printMessage(new Logger.Message("Update", start, end - start));
+    this.logger.printMessage(new Logger.Message("Render", start, end - start));
   }
 
   @Override

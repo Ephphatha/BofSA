@@ -71,7 +71,7 @@ public class Logger extends Thread {
     try {
       this.pendingMessages.clear();
       this.file = new FileWriter(this.df.format(Calendar.getInstance().getTime()) + ".csv");
-      this.file.write("Cycle,Start Time,Duration\n");
+      this.file.write("Section,Start Time,Duration\n");
       this.running = true;
     } catch (IOException e) {
       // TODO Auto-generated catch block
