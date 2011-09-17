@@ -31,7 +31,6 @@ import org.newdawn.slick.SlickException;
 import org.newdawn.slick.geom.Vector2f;
 
 import au.edu.csu.bofsa.Creep.Attributes;
-import au.edu.csu.bofsa.Creep.Type;
 
 /**
  * @author ephphatha
@@ -42,7 +41,7 @@ public class CreepFactory {
                   spriteSheet;
   
 
-  public Creep spawnCreep(final Type type, final Vector2f pos,
+  public Creep spawnCreep(final Vector2f pos,
       final Queue<CheckPoint> cps, final Vector2f goal) {
     if (this.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
@@ -70,42 +69,15 @@ public class CreepFactory {
       s = new Sprite(this.errorImage);
     }
 
-    int offset = 0;
-    Attributes attributes = new Attributes(type);
-    switch (type) {
-    case CUSTOMER:
-      offset = 0;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(100.0f);
-      attributes.setMaxSpeed(1.0f);
-      break;
-      
-    case HOBO:
-      offset = 16;
-      attributes.setDamage(0.5f);
-      attributes.setHealth(10.0f);
-      attributes.setMaxSpeed(0.5f);
-      break;
-      
-    case AUDITOR:
-      offset = 32;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(250.0f);
-      attributes.setMaxSpeed(2.0f);
-      break;
-      
-    default:
-      offset = 48;
-      attributes.setDamage(0.0f);
-      attributes.setHealth(10.0f);
-      attributes.setMaxSpeed(1.0f);
-      break;
-    }
-
+    Attributes attributes = new Attributes();
+    attributes.setDamage(0.0f);
+    attributes.setHealth(64.0f);
+    attributes.setMaxSpeed(1.0f);
+    
     Sprite.SequencePoint[] a = new Sprite.SequencePoint[16];
 
     for (int j = 0; j < 16; ++j) {
-      a[j] = new Sprite.SequencePoint(j + offset, 0.25f);
+      a[j] = new Sprite.SequencePoint(j, 0.25f);
     }
     
     return new Creep(s, a, pos, cps, goal, attributes);

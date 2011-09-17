@@ -273,8 +273,8 @@ public class GameLevel {
     }
   }
   
-  public Tower spawnTower(Tower.Type type, Vector2f pos) {
-    Tower t =  Tower.createTower(type, pos);
+  public Tower spawnTower(Vector2f pos) {
+    Tower t =  Tower.createTower(pos);
     if (this.spawnTower(t)) {
       return t;
     } else {

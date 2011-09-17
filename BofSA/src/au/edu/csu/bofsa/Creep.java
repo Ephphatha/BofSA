@@ -26,8 +26,11 @@ package au.edu.csu.bofsa;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.ShapeFill;
 import org.newdawn.slick.geom.Rectangle;
+import org.newdawn.slick.geom.Shape;
 import org.newdawn.slick.geom.Vector2f;
 
 /**
@@ -51,24 +54,16 @@ public class Creep {
   protected Attributes attributes;
   
   public static class Attributes {
-    public final Type type;
-    
     public float hp,
-                 value,
+                 maxHp,
                  damage,
                  speed;
 
-    Attributes(Type type) {
-      this.type = type;
-      
-      this.hp = 0.0f;
-      this.damage = 0.0f;
-      this.speed = 1.0f;
+    Attributes() {
+      this(0.0f, 0.0f, 1.0f);
     }
     
-    Attributes(Type type, float hp, float damage, float speed) {
-      this(type);
-      
+    Attributes(float hp, float damage, float speed) {
       this.setHealth(hp);
       
       this.setDamage(damage);
@@ -86,13 +81,30 @@ public class Creep {
 
     public void setHealth(float hp) {
       this.hp = hp;
+      this.maxHp = hp;
     }
   }
+  
+  public static class SolidFill implements ShapeFill {
+    private Color colour;
 
-  public enum Type {
-    CUSTOMER,
-    HOBO,
-    AUDITOR
+    public SolidFill(Color c) {
+      this.colour = c;
+    }
+
+    @Override
+    public Color colorAt(Shape shape, float x, float y) {
+      return this.colour;
+    }
+
+    @Override
+    public Vector2f getOffsetAt(Shape shape, float x, float y) {
+      return new Vector2f(0, 0);
+    }
+
+    public void setColor(Color colour) {
+      this.colour = colour;
+    }
   }
   
   Creep(Sprite sprite, final Sprite.SequencePoint[] frames, final Vector2f position, final Queue<CheckPoint> checkpoints, final Vector2f goal, final Attributes attributes) {
@@ -200,13 +212,23 @@ public class Creep {
     this.checkpoint = checkpoint;
   }
 
-  public float getValue() {
-    return this.attributes.value;
-  }
-
   public void draw(Graphics g, Rectangle tile) {
-    Rectangle r = new Rectangle(tile.getCenterX() - tile.getWidth() / 4.0f, tile.getCenterY() - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
+    Rectangle r = new Rectangle(this.position.x * tile.getWidth() - tile.getWidth() / 4.0f, this.position.y * tile.getHeight() - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
     this.sprite.draw(g, r);
+    
+    SolidFill s = new SolidFill(Color.red);
+    
+    r.setHeight(r.getHeight() * 0.1f);
+    
+    g.draw(r, s);
+    
+    s.setColor(Color.green);
+    
+    float hpRatio = this.attributes.hp / this.attributes.maxHp;
+    
+    r.setWidth(r.getWidth() * hpRatio);
+    
+    g.draw(r, s);
   }
   
   public void update(float dt) {
@@ -226,7 +248,7 @@ public class Creep {
     this.position.add(this.velocity.copy().scale(dt));
     
     if (this.checkpoint != null) {
-      if (this.position.distanceSquared(this.checkpoint) < 0.5f * 0.5f) {
+      if (this.position.distanceSquared(this.checkpoint) < Math.pow(0.25f, 2)) {
         cm.checkpointReached(this);
         return;
       }
@@ -238,38 +260,7 @@ public class Creep {
     }
   }
 
-  public void takeDamage(Tower.Type source, float damage) {
-    switch (this.attributes.type) {
-    case AUDITOR:
-      if (source == Tower.Type.ADVERT) {
-        return;
-      } else if (source == Tower.Type.CLERK) {
-        this.attributes.hp -= damage;
-      } else if (source == Tower.Type.SECURITY) {
-        this.attributes.hp = 0;
-      }
-      
-    case CUSTOMER:
-      if (source == Tower.Type.ADVERT) {
-        this.attributes.value += damage;
-        this.attributes.hp -= damage;
-        if (this.attributes.hp <= 0) {
-          this.attributes.hp = Float.MIN_NORMAL;
-        }
-      } else if (source == Tower.Type.CLERK) {
-        this.attributes.hp -= damage;
-      } else if (source == Tower.Type.SECURITY) {
-        this.attributes.value -= damage;
-      }
-      break;
-      
-    case HOBO:
-      if (source == Tower.Type.ADVERT) {
-        return;
-      } else {
-        this.attributes.hp -= damage;
-      }
-      break;
-    }
+  public void takeDamage(float damage) {
+    this.attributes.hp -= damage;
   }
 }

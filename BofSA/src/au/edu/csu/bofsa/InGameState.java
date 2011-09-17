@@ -36,8 +36,6 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
-import au.edu.csu.bofsa.Creep.Type;
-
 /**
  * @author ephphatha
  *
@@ -47,15 +45,11 @@ public class InGameState implements GameState, CreepManager {
   
   protected GameLevel map;
   
-  Tower.Type selectedTower;
-
   private List<Tower> towers;
   private List<Creep> creeps;
   private Queue<Creep> deadCreeps;
   private Queue<Creep> newCreeps;
   
-  private float value;
-
   private CreepFactory creepFactory;
 
   @SuppressWarnings("unused")
@@ -86,8 +80,6 @@ public class InGameState implements GameState, CreepManager {
     } catch (SlickException e) {
       e.printStackTrace();
     }
-    
-    this.value = 0.0f;
   }
 
   @Override
@@ -104,8 +96,6 @@ public class InGameState implements GameState, CreepManager {
     this.creeps.clear();
     this.deadCreeps.clear();
     this.newCreeps.clear();
-    
-    this.selectedTower = null;
   }
 
   @Override
@@ -122,8 +112,6 @@ public class InGameState implements GameState, CreepManager {
         c.draw(g, r);
       }
     }
-
-    g.drawString("Asset value: " + Float.toString(this.value), 5, 25);
   }
 
   @Override
@@ -134,41 +122,15 @@ public class InGameState implements GameState, CreepManager {
     Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
                                           (float) input.getMouseY() / (float) container.getHeight());
     
-    if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON) && this.selectedTower != null) {
-      Vector2f towerPos = new Vector2f((float) Math.floor(relativeInput.x * this.map.getWidth()) + 0.5f,
-                                       (float) Math.floor(relativeInput.y * this.map.getHeight()) + 0.5f);
+    if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
+      Vector2f towerPos = new Vector2f((float) Math.floor(relativeInput.x * this.map.getWidth()),
+                                       (float) Math.floor(relativeInput.y * this.map.getHeight()));
       
-      Tower t = this.map.spawnTower(this.selectedTower, towerPos);
+      Tower t = this.map.spawnTower(towerPos);
       
       if (t != null) {
         this.towers.add(t);
       }
-    }
-    
-    if (input.isMousePressed(Input.MOUSE_RIGHT_BUTTON)) {
-      this.selectedTower = null;
-    }
-
-    if (input.isKeyPressed(Input.KEY_1)) {
-      this.selectedTower = Tower.Type.CLERK;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_2)) {
-      this.selectedTower = Tower.Type.ADVERT;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_3)) {
-      this.selectedTower = Tower.Type.SECURITY;
-    }
-    
-    if (input.isKeyPressed(Input.KEY_SPACE)) {
-      System.out.println("Spawning a creep.");
-      
-      Vector2f pos = new Vector2f(this.map.getWidth() / 2.0f, this.map.getHeight() / 2.0f);
-      
-      Vector2f goal = new Vector2f(relativeInput.x * this.map.getWidth(), relativeInput.y * this.map.getHeight());
-      
-      this.spawnCreep(Creep.Type.CUSTOMER, pos, null, goal);
     }
     
     if (input.isKeyPressed(Input.KEY_ESCAPE)) {
@@ -339,8 +301,6 @@ public class InGameState implements GameState, CreepManager {
   @Override
   public void onDeath(Creep c) {
     this.deadCreeps.add(c);
-    
-    this.value += c.getValue();
   }
 
   @Override
@@ -353,8 +313,6 @@ public class InGameState implements GameState, CreepManager {
     System.out.println("A creep has reached its goal!");
     
     this.deadCreeps.add(c);
-    
-    this.value -= c.getValue();
   }
 
   @Override
@@ -363,12 +321,12 @@ public class InGameState implements GameState, CreepManager {
   }
 
   @Override
-  public void spawnCreep(Type type, Vector2f position,
+  public void spawnCreep(Vector2f position,
       Queue<CheckPoint> checkpoints, Vector2f goal) {
     if (this.creepFactory == null) {
       this.creepFactory = new CreepFactory();
     }
     
-    this.onSpawn(this.creepFactory.spawnCreep(type, position, checkpoints, goal));
+    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, goal));
   }
 }

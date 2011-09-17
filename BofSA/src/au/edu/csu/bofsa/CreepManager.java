@@ -27,8 +27,6 @@ import java.util.Queue;
 
 import org.newdawn.slick.geom.Vector2f;
 
-import au.edu.csu.bofsa.Creep.Type;
-
 /**
  * @author ephphatha
  *
@@ -43,6 +41,6 @@ public interface CreepManager {
   
   public void goalReached(Creep c);
 
-  public void spawnCreep(Type customer, Vector2f position,
+  public void spawnCreep(Vector2f position,
       Queue<CheckPoint> checkpoints, Vector2f goal);
 }

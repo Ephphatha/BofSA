@@ -59,7 +59,7 @@ public class SpawnPoint {
     this.checkpoints = null;
     this.goal = null;
     
-    this.state = State.IDLE;
+    this.state = State.SPAWNING;
     
     this.elapsedTime = 0;
     this.lastSpawnTime = 0;
@@ -105,7 +105,7 @@ public class SpawnPoint {
       case SPAWNING:
         while (this.elapsedTime - this.lastSpawnTime >= this.spawnInterval) {
           this.lastSpawnTime += this.spawnInterval;
-          cm.spawnCreep(Creep.Type.CUSTOMER, this.position, this.checkpoints, this.goal);
+          cm.spawnCreep(this.position, this.checkpoints, this.goal);
           
           if (this.lastSpawnTime > this.spawnDuration) {
             break;

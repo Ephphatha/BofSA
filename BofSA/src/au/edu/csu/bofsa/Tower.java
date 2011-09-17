@@ -46,27 +46,20 @@ public class Tower {
   protected Attributes attributes;
   
   public static class Attributes {
-    public final Type type;
-  
-    public int maxTargets;
-    
     public float secondsPerShot;
   
     public float rangeSquared;
   
     public float damage;
 
-    public Attributes(Type type) {
-      this.type = type;
+    public Attributes() {
+      this(0.0f, 0.0f, 0.0f);
     }
   
-    Attributes(Type type, float fireRate, float range, float damage) {
-      this(type);
+    Attributes(float fireRate, float range, float damage) {
       this.setFireRate(fireRate);
       this.setRange(range);
       this.setDamage(damage);
-      
-      this.maxTargets = 1;
     }
 
     private void setDamage(float damage) {
@@ -82,12 +75,6 @@ public class Tower {
     }
   }
   
-  public static enum Type {
-    CLERK,
-    ADVERT,
-    SECURITY
-  }
-  
   protected Tower(Sprite sprite, final Vector2f position, Attributes attributes) {
     this.sprite = sprite;
     
@@ -98,7 +85,7 @@ public class Tower {
     this.timeElapsed = 0.0f;
   }
   
-  public static Tower createTower(Tower.Type type, Vector2f pos) {
+  public static Tower createTower(Vector2f pos) {
     if (Tower.defaultImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
       
@@ -122,44 +109,12 @@ public class Tower {
       s = new Sprite(Tower.defaultImage);
     }
 
-    int offset = 0;
-    Attributes attributes = new Attributes(type);
+    Attributes attributes = new Attributes(2, 4, 8);
     
-    switch (type) {
-    case CLERK:
-      offset = 0;
-      attributes.setFireRate(10.0f);
-      attributes.setRange(4.0f);
-      attributes.setDamage(10.0f);
-      break;
-      
-    case ADVERT:
-      offset = 4;
-      attributes.setFireRate(60.0f);
-      attributes.setRange(2.5f);
-      attributes.setDamage(10.0f);
-      attributes.maxTargets = Integer.MAX_VALUE;
-      break;
-      
-    case SECURITY:
-      offset = 8;
-      attributes.setFireRate(6.0f);
-      attributes.setRange(5.0f);
-      attributes.setDamage(2.0f);
-      break;
-      
-    default:
-      offset = 12;
-      attributes.setFireRate(0.0f);
-      attributes.setRange(0.0f);
-      attributes.setDamage(100.0f);
-      break;
-    }
-
     Sprite.SequencePoint[] a = new Sprite.SequencePoint[4];
 
     for (int j = 0; j < 4; ++j) {
-      a[j] = new Sprite.SequencePoint(j + offset, 0.25f);
+      a[j] = new Sprite.SequencePoint(j, 0.25f);
     }
     s.setFrameSequence(a);
     
@@ -168,24 +123,29 @@ public class Tower {
   
   public void update(float dt, List<Creep> creeps) {
     this.timeElapsed += dt;
+
+    boolean fired = false;
     
     while (this.timeElapsed > this.attributes.secondsPerShot) {
-      int numAttacks = 0;
+      fired = false;
       for (Creep c : creeps) {
         if (this.attack(c)) {
-          if (++numAttacks >= this.attributes.maxTargets) {
-            break;
-          }
+          fired = true;
+          break;
         }
       }
       
       this.timeElapsed -= this.attributes.secondsPerShot;
     }
+    
+    if (this.timeElapsed > this.attributes.secondsPerShot && fired == false) {
+      this.timeElapsed = this.attributes.secondsPerShot;
+    }
   }
 
   private boolean attack(Creep c) {
     if (this.position.distanceSquared(c.getPosition()) <= this.attributes.rangeSquared) {
-      c.takeDamage(this.attributes.type, this.attributes.damage);
+      c.takeDamage(this.attributes.damage);
       return true;
     } else {
       return false;
