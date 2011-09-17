@@ -51,6 +51,8 @@ public class InGameState implements GameState, CreepManager {
   private Queue<Creep> newCreeps;
   
   private CreepFactory creepFactory;
+  
+  private Logger logger;
 
   @SuppressWarnings("unused")
   private InGameState() {
@@ -64,6 +66,9 @@ public class InGameState implements GameState, CreepManager {
     this.creeps = new LinkedList<Creep>();
     this.deadCreeps = new LinkedList<Creep>();
     this.newCreeps = new LinkedList<Creep>();
+    
+    this.logger = new Logger();
+    this.logger.start();
   }
 
   @Override
@@ -80,6 +85,8 @@ public class InGameState implements GameState, CreepManager {
     } catch (SlickException e) {
       e.printStackTrace();
     }
+    
+    this.logger.startLogging();
   }
 
   @Override
@@ -90,6 +97,8 @@ public class InGameState implements GameState, CreepManager {
   @Override
   public void leave(GameContainer container, StateBasedGame game)
       throws SlickException {
+    this.logger.stopLogging();
+    
     this.map = null;
 
     this.towers.clear();
@@ -101,6 +110,8 @@ public class InGameState implements GameState, CreepManager {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
+    long start = System.nanoTime();
+    
     if (this.map != null) {
       this.map.render(container, g);
       
@@ -112,11 +123,17 @@ public class InGameState implements GameState, CreepManager {
         c.draw(g, r);
       }
     }
+    
+    long end = System.nanoTime();
+    
+    this.logger.printMessage(new Logger.Message("Update", start, end - start));
   }
 
   @Override
   public void update(GameContainer container, StateBasedGame game, int delta)
       throws SlickException {
+    long start = System.nanoTime();
+    
     Input input = container.getInput();
 
     Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
@@ -164,6 +181,10 @@ public class InGameState implements GameState, CreepManager {
     }
     
     this.deadCreeps.clear();
+    
+    long end = System.nanoTime();
+    
+    this.logger.printMessage(new Logger.Message("Update", start, end - start));
   }
 
   @Override
