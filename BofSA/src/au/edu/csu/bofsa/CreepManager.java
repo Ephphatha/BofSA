@@ -23,50 +23,24 @@
  */
 package au.edu.csu.bofsa;
 
-import org.newdawn.slick.AppGameContainer;
-import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.SlickException;
-import org.newdawn.slick.state.StateBasedGame;
+import java.util.Queue;
+
+import org.newdawn.slick.geom.Vector2f;
 
 /**
  * @author ephphatha
  *
  */
-public class BofSA extends StateBasedGame {
-
-  protected enum States {
-    MAINMENU,
-    SINGLE_THREAD,
-    TASK_BASED
-  }
-
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    try {
-      AppGameContainer app = new AppGameContainer(new BofSA());
-      app.setDisplayMode(800, 600, false);
-      app.start();
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
-  }
+public interface CreepManager {
   
-  public BofSA() {
-    super("Bank of SA");
-    
-    this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal()));
-    this.addState(new InGameStateTB(States.TASK_BASED.ordinal()));
-    
-    this.enterState(States.MAINMENU.ordinal());
-  }
+  public void onSpawn(Creep c);
+  
+  public void onDeath(Creep c);
+  
+  public void checkpointReached(Creep c);
+  
+  public void goalReached(Creep c);
 
-  @Override
-  public void initStatesList(GameContainer gc) throws SlickException {
-    for (int i = 0; i < this.getStateCount(); ++i) {
-      this.getState(i).init(gc, this);
-    }
-  }
+  public void spawnCreep(Vector2f position,
+      Queue<CheckPoint> checkpoints, Vector2f goal);
 }

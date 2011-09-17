@@ -78,8 +78,9 @@ public class MainMenuState implements GameState {
     
     Image buttons = new Image("assets/menubuttons.png");
     
-    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f));
-    this.exitButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.6f, 0.4f, 0.2f));
+    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.2f, 0.4f, 0.2f));
+    this.tbButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f));
+    this.exitButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.8f, 0.4f, 0.2f));
   }
 
   /*
@@ -95,6 +96,7 @@ public class MainMenuState implements GameState {
     background.draw(0, 0, container.getWidth(), container.getHeight());
     
     this.stButton.render(container, g);
+    this.tbButton.render(container, g);
     
     this.exitButton.render(container, g);
   }
@@ -124,12 +126,10 @@ public class MainMenuState implements GameState {
     
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
       if (this.stButton.mousePressed(p)) {
-        // Transition to game state.
-        System.out.println("Start button hit");
         game.enterState(BofSA.States.SINGLE_THREAD.ordinal());
+      } else if (this.tbButton.mousePressed(p)) {
+        game.enterState(BofSA.States.TASK_BASED.ordinal());
       } else if (this.exitButton.mousePressed(p)) {
-        // Exit game.
-        System.out.println("Exit button hit");
         container.exit();
       }
     }

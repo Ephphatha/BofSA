@@ -119,8 +119,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     
     this.stopLogging();
     
-    System.out.println(this.numTasks + " tasks executed with a combined time of " + this.totalRunTime + " nanoseconds.");
-    
     this.threads.clear();
     this.tasks.clear();
   }
