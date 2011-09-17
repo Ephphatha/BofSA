@@ -14,7 +14,6 @@
             <fileset dir="D:/Documents/Education/CSU/Honours/Implementation/BofSA/bin"/>
             <zipfileset dir="D:\Documents\Education\CSU\Honours\Implementation\BofSA\lib" includes="lwjgl.jar"/>
             <zipfileset dir="D:\Documents\Education\CSU\Honours\Implementation\BofSA\lib" includes="slick.jar"/>
-            <fileset dir="D:/Documents/Education/CSU/Honours/Implementation/BofSA/lib"/>
         </jar>
     </target>
 </project>
