@@ -24,23 +24,53 @@
 package au.edu.csu.bofsa;
 
 import java.util.Queue;
-
-import org.newdawn.slick.geom.Vector2f;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * @author ephphatha
  *
  */
-public interface CreepManager {
-  
-  public void onSpawn(Creep c);
-  
-  public void onDeath(Creep c);
-  
-  public void checkpointReached(Creep c);
-  
-  public void goalReached(Creep c);
+public class WorkerThread extends Thread implements Caller<Boolean> {
 
-  public void spawnCreep(Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal);
+  protected Scheduler scheduler;
+  
+  protected Queue<Callable<Boolean>> tasks;
+  
+  /**
+   * 
+   */
+  public WorkerThread(Scheduler s) {
+    this.scheduler = s;
+    
+    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
+  }
+
+  public void run() {
+    while (!Thread.interrupted()) {
+      if (!this.tasks.isEmpty()) {
+        do {
+          Callable<Boolean> c = this.tasks.poll();
+
+          try {
+            if (c.call()) {
+              this.scheduler.call(c);
+            }
+          } catch (InterruptedException e) {
+            break;
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        } while (!this.tasks.isEmpty());
+      }
+      
+      this.scheduler.slice(this);
+      
+      Thread.yield();
+    }
+  }
+
+  public void call(Callable<Boolean> r) {
+    this.tasks.add(r);
+  }
 }

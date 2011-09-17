@@ -45,9 +45,9 @@ public class BofSA extends StateBasedGame {
    */
   public static void main(String[] args) {
     try {
-    AppGameContainer app = new AppGameContainer(new BofSA());
-    app.setDisplayMode(800, 600, false);
-    app.start();
+      AppGameContainer app = new AppGameContainer(new BofSA());
+      app.setDisplayMode(800, 600, false);
+      app.start();
     } catch (SlickException e) {
       e.printStackTrace();
     }

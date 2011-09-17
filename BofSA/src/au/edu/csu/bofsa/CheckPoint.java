@@ -29,7 +29,7 @@ import org.newdawn.slick.geom.Vector2f;
  * @author ephphatha
  *
  */
-public class CheckPoint implements Comparable<CheckPoint>{
+public class CheckPoint implements Comparable<CheckPoint>, Copyable<CheckPoint> {
   public final int index;
   public final Vector2f position;
   
@@ -41,5 +41,15 @@ public class CheckPoint implements Comparable<CheckPoint>{
   @Override
   public int compareTo(CheckPoint rhs) {
     return this.index - rhs.index;
+  }
+
+  @Override
+  public void copy(CheckPoint rhs) {
+    // Not allowed, final members.
+  }
+
+  @Override
+  public CheckPoint copy() {
+    return new CheckPoint(this.index, this.position.copy());
   }
 }
