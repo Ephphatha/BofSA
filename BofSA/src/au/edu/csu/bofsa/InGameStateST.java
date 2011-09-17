@@ -43,7 +43,7 @@ import org.newdawn.slick.state.StateBasedGame;
 public class InGameStateST implements GameState, CreepManager {
   private int stateID;
   
-  protected GameLevel map;
+  protected GameLevelST map;
   
   private List<Tower> towers;
   private List<Creep> creeps;
@@ -81,7 +81,7 @@ public class InGameStateST implements GameState, CreepManager {
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
     try {
-      this.map = new GameLevel("test");
+      this.map = new GameLevelST("test");
     } catch (SlickException e) {
       e.printStackTrace();
     }

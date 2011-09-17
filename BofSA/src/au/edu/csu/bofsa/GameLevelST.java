@@ -42,7 +42,7 @@ import org.newdawn.slick.tiled.TiledMap;
  * @author ephphatha
  *
  */
-public class GameLevel {
+public class GameLevelST {
 
   protected Dimension size;
   protected BoardNode[][] board;
@@ -123,7 +123,7 @@ public class GameLevel {
     }
   }
   
-  public GameLevel(String levelName) throws SlickException {
+  public GameLevelST(String levelName) throws SlickException {
     TiledMap map = new TiledMap("levels/" + levelName + ".tmx");
     
     this.size = new Dimension(map.getWidth(), map.getHeight());
