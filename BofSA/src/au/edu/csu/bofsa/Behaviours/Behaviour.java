@@ -63,7 +63,7 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     
     this.events = new ConcurrentLinkedQueue<Event>();
     
-    this.deltaThreshold = 10000;
+    this.deltaThreshold = 100000;
   }
   
   protected void addInput(InputSignal<?> input) {
@@ -90,16 +90,6 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     
     if (!doRun()) {
       return false;
-    }
-    
-    long current = System.nanoTime();
-    
-    if (current - this.lastStartTime < 1000) {
-      try {
-        Thread.sleep(0, (int) (Math.random() * 1000));
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
     }
     
     this.lastEndTime = System.nanoTime();

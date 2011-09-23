@@ -38,6 +38,32 @@ import org.newdawn.slick.geom.Vector2f;
  *
  */
 public class Creep {
+
+  protected static SolidFill redFill = new SolidFill(Color.red);
+  protected static SolidFill greenFill = new SolidFill(Color.green);
+
+  public static class SolidFill implements ShapeFill {
+    private Color colour;
+
+    public SolidFill(Color c) {
+      this.colour = c;
+    }
+
+    @Override
+    public Color colorAt(Shape shape, float x, float y) {
+      return this.colour;
+    }
+
+    @Override
+    public Vector2f getOffsetAt(Shape shape, float x, float y) {
+      return new Vector2f(0, 0);
+    }
+
+    public void setColor(Color colour) {
+      this.colour = colour;
+    }
+  }
+  
   protected Vector2f position,
                      goal,
                      checkpoint,
@@ -46,11 +72,17 @@ public class Creep {
   protected Queue<CheckPoint> checkpoints;
   
   protected Sprite sprite;
-  protected Sprite.SequencePoint[] northSequence,
-                                   southSequence,
-                                   westSequence,
-                                   eastSequence;
+  protected Sprite.SequencePoint[][] sequences;
+  
+  protected Direction currentDir;
 
+  public static enum Direction {
+    NORTH,
+    SOUTH,
+    WEST,
+    EAST
+  }
+  
   protected Attributes attributes;
   
   public static class Attributes {
@@ -85,54 +117,41 @@ public class Creep {
     }
   }
   
-  public static class SolidFill implements ShapeFill {
-    private Color colour;
-
-    public SolidFill(Color c) {
-      this.colour = c;
-    }
-
-    @Override
-    public Color colorAt(Shape shape, float x, float y) {
-      return this.colour;
-    }
-
-    @Override
-    public Vector2f getOffsetAt(Shape shape, float x, float y) {
-      return new Vector2f(0, 0);
-    }
-
-    public void setColor(Color colour) {
-      this.colour = colour;
-    }
-  }
-  
   Creep(Sprite sprite, final Sprite.SequencePoint[] frames, final Vector2f position, final Queue<CheckPoint> checkpoints, final Vector2f goal, final Attributes attributes) {
     this.sprite = sprite;
 
-    this.southSequence = new Sprite.SequencePoint[4];
+    this.sequences = new Sprite.SequencePoint[4][];
+    Sprite.SequencePoint[] southSequence = new Sprite.SequencePoint[4];
 
     for (int i = 0; i < 4; ++i) {
-      this.southSequence[i] = frames[i];
+      southSequence[i] = frames[i];
     }
     
-    this.northSequence = new Sprite.SequencePoint[4];
+    this.sequences[Direction.SOUTH.ordinal()] = southSequence;
+    
+    Sprite.SequencePoint[] northSequence = new Sprite.SequencePoint[4];
 
     for (int i = 0; i < 4; ++i) {
-      this.northSequence[i] = frames[i + 4];
+      northSequence[i] = frames[i + 4];
     }
+
+    this.sequences[Direction.NORTH.ordinal()] = northSequence;
     
-    this.westSequence = new Sprite.SequencePoint[4];
+    Sprite.SequencePoint[] westSequence = new Sprite.SequencePoint[4];
 
     for (int i = 0; i < 4; ++i) {
-      this.westSequence[i] = frames[i + 8];
+      westSequence[i] = frames[i + 8];
     }
+
+    this.sequences[Direction.WEST.ordinal()] = westSequence;
     
-    this.eastSequence = new Sprite.SequencePoint[4];
+    Sprite.SequencePoint[] eastSequence = new Sprite.SequencePoint[4];
     
     for (int i = 0; i < 4; ++i) {
-      this.eastSequence[i] = frames[i + 12];
+      eastSequence[i] = frames[i + 12];
     }
+
+    this.sequences[Direction.EAST.ordinal()] = eastSequence;
     
     this.position = position.copy();
     this.goal = goal;
@@ -142,6 +161,8 @@ public class Creep {
       this.checkpoints= null;
     }
     this.attributes = attributes;
+    
+    this.currentDir = Direction.NORTH;
     
     this.calculateVelocity();
     
@@ -194,17 +215,24 @@ public class Creep {
     if (Math.abs(this.velocity.x) >= Math.abs(this.velocity.y)) {
       // moving east or west
       if (this.velocity.x >= 0) {
-        this.sprite.setFrameSequence(this.eastSequence);
+        this.setAnimationSequence(Direction.EAST);
       } else {
-        this.sprite.setFrameSequence(this.westSequence);
+        this.setAnimationSequence(Direction.WEST);
       }
     } else {
       // moving north or south
       if (this.velocity.y <= 0) {
-        this.sprite.setFrameSequence(this.northSequence);
+        this.setAnimationSequence(Direction.NORTH);
       } else {
-        this.sprite.setFrameSequence(this.southSequence);
+        this.setAnimationSequence(Direction.SOUTH);
       }
+    }
+  }
+
+  private void setAnimationSequence(Direction dir) {
+    if (this.currentDir != dir) {
+      this.currentDir = dir;
+      this.sprite.setFrameSequence(this.sequences[this.currentDir.ordinal()]);
     }
   }
   
@@ -216,19 +244,15 @@ public class Creep {
     Rectangle r = new Rectangle(this.position.x * tile.getWidth() - tile.getWidth() / 4.0f, this.position.y * tile.getHeight() - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
     this.sprite.draw(g, r);
     
-    SolidFill s = new SolidFill(Color.red);
-    
     r.setHeight(r.getHeight() * 0.1f);
     
-    g.draw(r, s);
-    
-    s.setColor(Color.green);
+    g.draw(r, Creep.redFill);
     
     float hpRatio = this.attributes.hp / this.attributes.maxHp;
     
     r.setWidth(r.getWidth() * hpRatio);
     
-    g.draw(r, s);
+    g.draw(r, Creep.greenFill);
   }
   
   public void update(float dt) {

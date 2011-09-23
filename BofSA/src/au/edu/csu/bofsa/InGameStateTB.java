@@ -64,6 +64,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
   private Signal<CopyableDimension> tileSize;
 
+  private Logger logger;
+
   @SuppressWarnings("unused")
   private InGameStateTB() {
     this(0);
@@ -77,6 +79,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.broadcastStream = new Stream();
     
     this.scheduler = new Scheduler();
+    
+    this.logger = new Logger();
     
     this.broadcastStream.addSink(this.scheduler);
     
@@ -146,6 +150,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
+    long start = System.nanoTime();
+    
     if (this.map != null) {
       this.map.render(container, g);
       
@@ -153,6 +159,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
         d.draw(g);
       }
     }
+
+    this.logger.printMessage(new Logger.Message("Render", start, System.nanoTime() - start));
   }
 
   @Override

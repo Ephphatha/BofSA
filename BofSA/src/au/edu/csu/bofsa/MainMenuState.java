@@ -23,6 +23,7 @@
  */
 package au.edu.csu.bofsa;
 
+import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
@@ -78,9 +79,9 @@ public class MainMenuState implements GameState {
     
     Image buttons = new Image("assets/menubuttons.png");
     
-    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.2f, 0.4f, 0.2f));
-    this.tbButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f));
-    this.exitButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.8f, 0.4f, 0.2f));
+    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.2f, 0.4f, 0.2f), Color.green);
+    this.tbButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f), Color.cyan);
+    this.exitButton = new Button(buttons.getSubImage(0, 192, 320, 64), new Rectangle(0.3f, 0.8f, 0.4f, 0.2f), Color.red);
   }
 
   /*

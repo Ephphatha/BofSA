@@ -38,6 +38,10 @@ public class Signal<T extends Copyable<T>> implements InputSignal<T> {
     this.write(value);
   }
   
+  public Signal(final T value, long timeStamp) {
+    this.write(value, timeStamp);
+  }
+  
   public void write(final T newValue) {
     write(newValue, System.nanoTime());
   }

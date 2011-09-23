@@ -26,6 +26,7 @@ package au.edu.csu.bofsa;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.Sound;
@@ -44,6 +45,8 @@ public class Button {
                   normalImage,
                   mouseOverImage,
                   mouseDownImage;
+  
+  protected Color colour;
   
   protected Shape area;
   
@@ -64,13 +67,15 @@ public class Button {
   
   protected Set<ComponentListener> listeners;
   
-  Button(Image i, final Shape pos) {
+  Button(Image i, final Shape pos, final Color colour) {
     this.listeners = new HashSet<ComponentListener>();
     
     this.currentImage = i;
     this.normalImage = i;
     this.mouseOverImage = i;
     this.mouseDownImage = i;
+    
+    this.colour = colour;
     
     this.area = pos;
     
@@ -85,10 +90,12 @@ public class Button {
   }
   
   public void render(GUIContext container, Graphics g) {
-    this.currentImage.draw((float) container.getWidth() * this.area.getX(),
+    this.currentImage.draw(
+        (float) container.getWidth() * this.area.getX(),
         (float) container.getHeight() * this.area.getY(),
         (float) container.getWidth() * this.area.getWidth(),
-        (float) container.getHeight() * this.area.getHeight());
+        (float) container.getHeight() * this.area.getHeight(),
+        this.colour);
   }
 
   public boolean hit(Vector2f p) {
@@ -113,7 +120,7 @@ public class Button {
         
         if (this.mouseOverSound != null) {
           if (this.mouseOverSound.playing()) {
-            this.mouseDownSound.stop();
+            this.mouseOverSound.stop();
           }
         }
       }
@@ -128,7 +135,7 @@ public class Button {
       
       if (this.mouseOverSound != null) {
         if (this.mouseOverSound.playing()) {
-          this.mouseDownSound.stop();
+          this.mouseOverSound.stop();
         }
       }
       
@@ -145,7 +152,7 @@ public class Button {
   public void setMouseOverSound(Sound s) {
     if (this.mouseOverSound != null) {
       if (this.mouseOverSound.playing()) {
-        this.mouseDownSound.stop();
+        this.mouseOverSound.stop();
       }
     }
     

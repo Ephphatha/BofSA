@@ -45,6 +45,7 @@ public class BofSA extends StateBasedGame {
    */
   public static void main(String[] args) {
     try {
+      Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 2);
       AppGameContainer app = new AppGameContainer(new BofSA());
       app.setDisplayMode(800, 600, false);
       app.start();

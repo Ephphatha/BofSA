@@ -124,9 +124,7 @@ public class InGameStateST implements GameState, CreepManager {
       }
     }
     
-    long end = System.nanoTime();
-    
-    this.logger.printMessage(new Logger.Message("Render", start, end - start));
+    this.logger.printMessage(new Logger.Message("Render", start, System.nanoTime() - start));
   }
 
   @Override
@@ -331,8 +329,6 @@ public class InGameStateST implements GameState, CreepManager {
 
   @Override
   public void goalReached(Creep c) {
-    System.out.println("A creep has reached its goal!");
-    
     this.deadCreeps.add(c);
   }
 

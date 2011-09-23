@@ -48,6 +48,9 @@ import au.edu.csu.bofsa.Signals.Signal;
  */
 public class ActorRenderBehaviour extends RenderBehaviour{
   
+  protected static SolidFill redFill = new SolidFill(Color.red);
+  protected static SolidFill greenFill = new SolidFill(Color.green);
+  
   protected InputSignal<CopyableVector2f> velocity;
   
   protected InputSignal<CopyableFloat> health;
@@ -150,19 +153,15 @@ public class ActorRenderBehaviour extends RenderBehaviour{
     Rectangle r = new Rectangle(pos.x * tile.width - tile.width / 4.0f, pos.y * tile.height - tile.height / 4.0f, tile.width / 2.0f, tile.height / 2.0f);
     this.sprite.draw(g, r);
     
-    SolidFill s = new SolidFill(Color.red);
-    
     r.setHeight(r.getHeight() * 0.1f);
     
-    g.draw(r, s);
-    
-    s.setColor(Color.green);
+    g.draw(r, ActorRenderBehaviour.redFill);
     
     float hpRatio = this.health.read().getValue() / this.maxHealth.read().getValue();
     
     r.setWidth(r.getWidth() * hpRatio);
     
-    g.draw(r, s);
+    g.draw(r, ActorRenderBehaviour.greenFill);
   }
 
   private void setAnimationSequence(Direction dir) {
