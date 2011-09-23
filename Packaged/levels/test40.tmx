@@ -41,7 +41,7 @@
    <properties>
     <property name="lullDuration" value="20"/>
     <property name="spawnDuration" value="5"/>
-    <property name="spawnInterval" value="0.5"/>
+    <property name="spawnInterval" value="0.125"/>
    </properties>
   </object>
  </objectgroup>
