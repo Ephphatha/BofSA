@@ -232,7 +232,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
             Event.Type.TARGETTED,
             birthTime));
     
-    CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read();
+    CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read().copy();
     
     temp.add(new Pipe<CopyableVector2f>(position, creepStream));
     
@@ -249,7 +249,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         continue;
       } else if (e instanceof GenericEvent) {
         if (e.value == GenericEvent.Message.DEATH && e.getSource() instanceof Stream) {
-          CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read();
+          CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read().copy();
           
           for (int i = temp.size() - 1; i >= 0; --i) {
             if (temp.get(i).sink.equals(e.getSource())) {
@@ -259,7 +259,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
           
           this.signal.write(temp);
         } else if (e.value == GenericEvent.Message.FORGET_ALL) {
-          CopyableList<Pipe<CopyableVector2f>> c = this.signal.read();
+          CopyableList<Pipe<CopyableVector2f>> c = this.signal.read().copy();
           c.clear();
           this.signal.write(c);
         }

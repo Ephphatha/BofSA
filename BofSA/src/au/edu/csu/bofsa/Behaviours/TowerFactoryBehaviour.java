@@ -184,7 +184,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
           switch (d.type) {
           case ADD_LOCATION:
           {
-            CopyableList<CopyablePoint> c = this.signal.read();
+            CopyableList<CopyablePoint> c = this.signal.read().copy();
             c.add((CopyablePoint) d.position);
             this.signal.write(c);
             break;
@@ -192,7 +192,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
 
           case REMOVE_LOCATION:
           {
-            CopyableList<CopyablePoint> c = this.signal.read();
+            CopyableList<CopyablePoint> c = this.signal.read().copy();
             c.add((CopyablePoint) d.position);
             this.signal.write(c);
             break;
@@ -200,12 +200,12 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
           }
         } else if (e instanceof GenericEvent) {
           if (e.value == GenericEvent.Message.FORGET_ALL) {
-            CopyableList<CopyablePoint> c = this.signal.read();
+            CopyableList<CopyablePoint> c = this.signal.read().copy();
             c.clear();
             this.signal.write(c);
           }
         } else if (e instanceof TowerSpawnEvent) {
-          CopyableList<CopyablePoint> c = this.signal.read();
+          CopyableList<CopyablePoint> c = this.signal.read().copy();
           if (c.contains(e.value)) {
             this.createTower((CopyablePoint) e.value);
             c.remove(e.value);

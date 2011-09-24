@@ -112,6 +112,8 @@ public class Logger extends Thread {
             System.out.println(m.toString());
           }
         }
+      } else {
+        Thread.yield();
       }
     }
   }

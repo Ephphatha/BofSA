@@ -52,7 +52,7 @@ public class Signal<T extends Copyable<T>> implements InputSignal<T> {
   }
   
   public final T read() {
-    return this.buffer.copy();
+    return this.buffer;
   }
   
   public long getTimeStamp() {
