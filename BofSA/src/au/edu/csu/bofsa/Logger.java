@@ -27,21 +27,29 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author ephphatha
  *
  */
-public class Logger extends Thread {
+public class Logger implements Runnable {
 
-  public static class Message {
+  public static class Task implements Comparable<Task> {
     protected final String name;
     protected final Long startTime;
     protected final Long duration;
     
-    public Message(String name, Long startTime, Long duration) {
+    public Task(String name, Long startTime, Long duration) {
       this.name = name;
       this.startTime = startTime;
       this.duration = duration;
@@ -50,71 +58,297 @@ public class Logger extends Thread {
     public String toString() {
       return "\"" + this.name + "\"," + this.startTime + "," + this.duration + "\n";
     }
+
+    @Override
+    public int compareTo(Task o) {
+      return (int) (this.startTime - o.startTime);
+    }
   }
   
-  private FileWriter file;
-  private Queue<Message> pendingMessages;
-  private boolean running;
+  public static class TaskStats {
+    public final AtomicLong executionCount;
+    public final AtomicLong retryCount;
+    public final AtomicLong waitCount;
+    public final AtomicLong totalRuntime;
+    public final AtomicReference<Double> meanRuntime;
+    public final AtomicReference<Double> sumSquaresRuntime;
+    
+    public TaskStats() {
+      this.executionCount = new AtomicLong(0);
+      this.retryCount = new AtomicLong(0);
+      this.waitCount = new AtomicLong(0);
+      this.totalRuntime = new AtomicLong(0);
+      this.meanRuntime = new AtomicReference<Double>(new Double(0));
+      this.sumSquaresRuntime = new AtomicReference<Double>(new Double(0));
+    }
+    
+    public void reset() {
+      this.executionCount.set(0);
+      this.retryCount.set(0);
+      this.waitCount.set(0);
+      this.totalRuntime.set(0);
+    }
+
+    public void merge(TaskStats rhs) {
+      double xbar_a = this.meanRuntime.get();
+      double xbar_b = rhs.meanRuntime.get();
+      
+      long n_a = this.executionCount.get();
+      long n_b = rhs.executionCount.get();
+      
+      if (n_b == 0) {
+        //use this values;
+      } else if (n_a == 0) {
+        //use rhs values;
+        this.meanRuntime.set(xbar_b);
+        this.sumSquaresRuntime.set(rhs.sumSquaresRuntime.get());
+      } else {
+        double sigma = xbar_b - xbar_a;
+        
+        // \bar{x}_X = \frac{n_A\bar{x}_A + n_B\bar{x}_B}{n_A+n_B}
+        this.meanRuntime.set((n_a * xbar_a + n_b * xbar_b)/(n_a + n_b));
+        
+        this.sumSquaresRuntime.set(this.sumSquaresRuntime.get() + rhs.sumSquaresRuntime.get() + Math.pow(sigma, 2) * (n_a*n_b)/(n_a+n_b));
+      }
+      
+      this.executionCount.set(n_a + n_b);
+      this.retryCount.addAndGet(rhs.retryCount.get());
+      this.waitCount.addAndGet(rhs.waitCount.get());
+      this.totalRuntime.addAndGet(rhs.totalRuntime.get());
+    }
+  }
+  
+  private boolean detailedLogging;
+  private FileWriter detailFile;
   private SimpleDateFormat df;
+  private Date startTime;
+  private String description;
+  
+  private Queue<Task> pendingMessages;
+  private Map<String, TaskStats> taskStats;
+  private int numWorkers;
   
   public Logger() {
-    this.pendingMessages = new ConcurrentLinkedQueue<Message>();
-    
-    this.running = false;
+    this.pendingMessages = new ConcurrentLinkedQueue<Task>();
+    this.taskStats = new ConcurrentHashMap<String, TaskStats>();
     
     this.df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
     
-    this.setDaemon(true);
+    this.detailedLogging = false;
   }
 
-  public boolean startLogging() {
-    try {
-      this.pendingMessages.clear();
-      this.file = new FileWriter(this.df.format(Calendar.getInstance().getTime()) + ".csv");
-      this.file.write("Section,Start Time,Duration\n");
-      this.running = true;
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+  public void startLogging(String description) {
+    this.startLogging(description, -1);
+  }
+  
+  public void startLogging(String description, int workerThreads) {
+    this.pendingMessages.clear();
+    
+    this.description = description;
+    
+    this.numWorkers = workerThreads;
+    
+    for (TaskStats ms : this.taskStats.values()) {
+      ms.reset();
     }
     
-    return this.running;
+    this.startTime = Calendar.getInstance().getTime();
+  }
+  
+  public boolean logDetailedInfo(boolean detailed) {
+    return this.detailedLogging = detailed;
+  }
+  
+  public void merge(Logger rhs) {
+    if (rhs == null) {
+      return;
+    }
+    
+    List<Task> temp = new LinkedList<Task>();
+    
+    while (!this.pendingMessages.isEmpty()) {
+      temp.add(this.pendingMessages.poll());
+    }
+    
+    while (!rhs.pendingMessages.isEmpty()) {
+      temp.add(rhs.pendingMessages.poll());
+    }
+    
+    for (Map.Entry<String, TaskStats> e : rhs.taskStats.entrySet()) {
+      if (this.taskStats.containsKey(e.getKey())) {
+        this.taskStats.get(e.getKey()).merge(e.getValue());
+      } else {
+        this.taskStats.put(e.getKey(), e.getValue());
+      }
+    }
+    rhs.taskStats.clear();
+    
+    Collections.sort(temp);
+    
+    this.pendingMessages.addAll(temp);
   }
   
   public void stopLogging() {
-    this.running = false;
-    
+    this.flush();
     try {
-      this.file.close();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+      FileWriter file = this.getFile(".log");
+      
+      if (file != null) {
+        try {
+          file.write(
+              "Task name," +
+              "Times executed," +
+              "Times retried," +
+              "Times not ready," +
+              "Total runtime (ns)," +
+              "Average runtime (ns)," +
+              "Sum of squares of differences (from running mean)," +
+              "Standard Deviation (estimated)" +
+              "\n");
+          
+          long numTasks = 0;
+          long totalRuntime = 0;
+          long numRetries = 0;
+          long numWaits = 0;
+          
+          for (Map.Entry<String, TaskStats> e : this.taskStats.entrySet()) {
+            TaskStats ms = e.getValue();
+            file.write(
+                e.getKey() + "," +
+                ms.executionCount + "," +
+                ms.retryCount + "," +
+                ms.waitCount + "," +
+                ms.totalRuntime + "," +
+                ms.meanRuntime + "," +
+                ms.sumSquaresRuntime + "," +
+                Double.toString(Math.sqrt(ms.sumSquaresRuntime.get() / ms.executionCount.get())) +
+                "\n");
+            
+            numTasks += ms.executionCount.get();
+            totalRuntime += ms.totalRuntime.get();
+            numRetries += ms.retryCount.get();
+            numWaits += ms.waitCount.get();
+          }
 
-    this.file = null;
+          file.write("\nNumber of worker threads," + this.numWorkers + "\n");
+          file.write("Total tasks executed," + numTasks + "\n");
+          file.write("Combined runtime (ns)," + totalRuntime + "\n");
+          file.write("Tasks not ready when retrieved," + numRetries + "\n");
+          file.write("Tasks not ready for immediate rerun," + numWaits + "\n");
+        } finally {
+          file.close();
+        }
+      }
+    } catch (IOException e) {
+      //Goggles
+    }
+    
+    this.detailFile = null;
   }
   
-  public void printMessage(Message m) {
-    if (this.running) {
+  public void taskRun(Task m) {
+    if (this.detailedLogging) {
       this.pendingMessages.add(m);
+    }
+
+    TaskStats ms = this.taskStats.get(m.name);
+    
+    if (ms == null) {
+      synchronized (this.taskStats) {
+        if (!this.taskStats.containsKey(m.name)) {
+          ms = new TaskStats();
+          this.taskStats.put(m.name, ms);
+        }
+      }
+    }
+  
+    long n = ms.executionCount.incrementAndGet();
+    ms.totalRuntime.addAndGet(m.duration);
+    
+    double xbar_n1 = ms.meanRuntime.get();
+    
+    double xbar_n = xbar_n1 + (m.duration - xbar_n1) / n;
+    
+    ms.meanRuntime.set(xbar_n);
+    ms.sumSquaresRuntime.set(ms.sumSquaresRuntime.get() + (m.duration - xbar_n) * (m.duration - xbar_n1));
+  }
+
+  public void taskWaited(String m) {
+    if (!this.taskStats.containsKey(m)) {
+      synchronized (this.taskStats) {
+        if (!this.taskStats.containsKey(m)) {
+          this.taskStats.put(m, new TaskStats());
+        }
+      }
+    }
+    
+    if (this.taskStats.containsKey(m)) {
+      TaskStats ms = this.taskStats.get(m);
+      ms.waitCount.incrementAndGet();
+    }
+  }
+
+  public void taskRetried(String m) {
+    if (!this.taskStats.containsKey(m)) {
+      synchronized (this.taskStats) {
+        if (!this.taskStats.containsKey(m)) {
+          this.taskStats.put(m, new TaskStats());
+        }
+      }
+    }
+    
+    if (this.taskStats.containsKey(m)) {
+      TaskStats ms = this.taskStats.get(m);
+      ms.retryCount.incrementAndGet();
+    }
+  }
+  
+  public void flush() {
+    if (!this.detailedLogging) {
+      return;
+    }
+    
+    if (this.detailFile == null) {
+      this.detailFile = this.getFile(".csv");
+      
+      if (this.detailFile != null) {
+        try {
+          this.detailFile.write("Name,Start Time,Runtime\n");
+        } catch (IOException e) {
+          //Goggles
+        }
+      }
+    }
+    
+    while (!this.pendingMessages.isEmpty()) {
+      Task m = this.pendingMessages.poll();
+      if (m != null && this.detailFile != null) {
+        try {
+          synchronized (this.detailFile) {
+            this.detailFile.write(m.toString());
+          }
+        } catch (IOException e) {
+          //Goggles
+        }
+      }
+    }
+  }
+  
+  private FileWriter getFile(String extension) {
+    try {
+      return new FileWriter(
+          this.df.format(this.startTime) +
+          (this.description != null ? ("_" + this.description) : "" ) +
+          extension);
+    } catch (IOException e) {
+      return null;
     }
   }
   
   public void run() {
-    while (!this.isInterrupted()) {
-      if (!this.pendingMessages.isEmpty()) {
-        Message m = this.pendingMessages.poll();
-        if (m != null && this.file != null) {
-          try {
-            this.file.write(m.toString());
-          } catch (IOException e) {
-            //Goggles
-            System.out.println(m.toString());
-          }
-        }
-      } else {
-        Thread.yield();
-      }
+    while (!Thread.currentThread().isInterrupted()) {
+      this.flush();
+      Thread.yield();
     }
   }
 }

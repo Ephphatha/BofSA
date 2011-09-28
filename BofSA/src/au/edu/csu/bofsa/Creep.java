@@ -158,7 +158,7 @@ public class Creep {
     try {
       this.checkpoints = new LinkedList<CheckPoint>(checkpoints);
     } catch (NullPointerException e) {
-      this.checkpoints= null;
+      this.checkpoints = null;
     }
     this.attributes = attributes;
     

@@ -63,9 +63,6 @@ public class GameLevelTB {
         this.background.draw(tile.getX(), tile.getY(), tile.getWidth(), tile.getHeight());
       }
     }
-    
-    public void update(float dt) {
-    }
   }
   
   public GameLevelTB(
@@ -218,13 +215,5 @@ public class GameLevelTB {
     }
     
     g.popTransform();
-  }
-  
-  public void update(float dt) {
-    for (int x = 0; x < this.size.width; ++x) {
-      for (int y = 0; y < this.size.height; ++y) {
-        this.board[x][y].update(dt);
-      }
-    }
   }
 }

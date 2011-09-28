@@ -88,13 +88,11 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   public Boolean call() {
     this.lastStartTime = System.nanoTime();
     
-    if (!doRun()) {
-      return false;
-    }
+    boolean retVal = this.doRun();
     
     this.lastEndTime = System.nanoTime();
     
-    return true;
+    return retVal;
   }
 
   @Override

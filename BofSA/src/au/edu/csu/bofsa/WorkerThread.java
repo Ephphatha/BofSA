@@ -27,6 +27,8 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import au.edu.csu.bofsa.Behaviours.Behaviour;
+
 /**
  * @author ephphatha
  *
@@ -37,6 +39,8 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
   
   protected Queue<Callable<Boolean>> tasks;
   
+  private Logger logger;
+  
   /**
    * 
    */
@@ -44,6 +48,8 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
     this.scheduler = s;
     
     this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
+    
+    this.logger = new Logger();
   }
 
   public void run() {
@@ -55,6 +61,11 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
           try {
             if (c.call()) {
               this.scheduler.call(c);
+            }
+
+            if (c instanceof Behaviour<?>) {
+              Behaviour<?> b = (Behaviour<?>) c;
+              this.logger.taskRun(new Logger.Task(b.getClass().getSimpleName(), b.getLastStartTime(), b.getLastRunTime()));
             }
           } catch (InterruptedException e) {
             break;
@@ -72,5 +83,9 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
 
   public void call(Callable<Boolean> r) {
     this.tasks.add(r);
+  }
+
+  public Logger getLogger() {
+    return this.logger;
   }
 }

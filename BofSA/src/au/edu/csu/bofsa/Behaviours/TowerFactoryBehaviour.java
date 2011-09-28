@@ -141,8 +141,8 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
     
     return this.spriteSheet;
   }
-
-  public void createTower(final CopyablePoint value) {
+  
+  public Sprite getSprite() {
     Sprite s;
     try {
       s = new Sprite(this.spriteSheet, this.spriteSheet.getWidth() / 4, this.spriteSheet.getHeight() / 4);
@@ -156,7 +156,13 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
       a[i] = new Sprite.SequencePoint(i, 0.25f);
     }
     s.setFrameSequence(a);
+    
+    return s;
+  }
 
+  public void createTower(final CopyablePoint value) {
+    Sprite s = this.getSprite();
+    
     long birthTime = System.nanoTime();
     
     Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(new CopyableVector2f(value.x, value.y));
@@ -193,7 +199,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
           case REMOVE_LOCATION:
           {
             CopyableList<CopyablePoint> c = this.signal.read().copy();
-            c.add((CopyablePoint) d.position);
+            c.remove((CopyablePoint) d.position);
             this.signal.write(c);
             break;
           }

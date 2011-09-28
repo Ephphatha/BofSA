@@ -23,6 +23,7 @@
  */
 package au.edu.csu.bofsa;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -33,8 +34,10 @@ import org.newdawn.slick.SlickException;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
+import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
 import au.edu.csu.bofsa.Behaviours.InputPollingBehaviour;
+import au.edu.csu.bofsa.Behaviours.RenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
@@ -66,6 +69,11 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
   private Logger logger;
 
+  private List<Drawable> towerBallast;
+  private List<Drawable> creepBallast;
+
+  private int numTowers;
+
   @SuppressWarnings("unused")
   private InGameStateTB() {
     this(0);
@@ -75,12 +83,16 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.stateID = id;
 
     this.drawables = new CopyOnWriteArrayList<Drawable>();
+
+    this.towerBallast = new LinkedList<Drawable>();
+    this.creepBallast = new LinkedList<Drawable>();
     
     this.broadcastStream = new Stream();
     
     this.scheduler = new Scheduler();
     
     this.logger = new Logger();
+    this.scheduler.setLogger(this.logger);
     
     this.broadcastStream.addSink(this.scheduler);
     
@@ -109,11 +121,33 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.towerFactory.loadResources();
     
     this.scheduler.start();
+
+    this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
     
     try {
       this.map = new GameLevelTB("test", this.scheduler, this.creepFactory, this.towerFactory);
     } catch (SlickException e) {
       e.printStackTrace();
+    }
+
+    Stream dummyStream = new Stream();
+    Signal<CopyableVector2f> dummy = new Signal<CopyableVector2f>(new CopyableVector2f(1,1));
+    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
+      this.towerBallast.add(new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), dummy, this.tileSize, this.towerFactory.getSprite(), dummyStream));
+    }
+    
+    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(1));
+    Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
+
+    for (int i = 0; i < 4; ++i) {
+      a[i] = new Sprite.SequencePoint[1];
+      for (int j = 0; j < 1; ++j) {
+        a[i][j] = new Sprite.SequencePoint((i * 4) + j, 0.25f);
+      }
+    }
+    
+    for (int i = 0; i < 256; ++i) {
+      this.creepBallast.add(new ActorRenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), dummy, dummy, health, health, this.tileSize, this.creepFactory.getSprite(), a, dummyStream, dummyStream));
     }
     
     this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
@@ -129,6 +163,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void init(GameContainer container, StateBasedGame game)
       throws SlickException {
+    this.numTowers = 0;
+    
     this.broadcastStream.addSink(this);
     
     this.tileSize.write(new CopyableDimension(container.getWidth(), container.getHeight()));
@@ -145,12 +181,24 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.scheduler.stop();
     
     this.drawables.clear();
+    
+    this.logger.stopLogging();
+    
+    this.numTowers = 0;
   }
 
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
     long start = System.nanoTime();
+    
+    for (int i = 0; i < this.towerBallast.size() - this.numTowers; ++i) {
+      this.towerBallast.get(i).draw(g);
+    }
+    
+    for (int i = 0; i < this.creepBallast.size() - (this.drawables.size() - this.numTowers); ++i) {
+      this.creepBallast.get(i).draw(g);
+    }
     
     if (this.map != null) {
       this.map.render(container, g);
@@ -160,7 +208,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
       }
     }
 
-    this.logger.printMessage(new Logger.Message("Render", start, System.nanoTime() - start));
+    this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
@@ -171,12 +219,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     if (input.isKeyPressed(Input.KEY_ESCAPE)) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
     }
-    
-    if (this.map != null) {
-      this.map.update(delta / 1000.0f);
-    }
-    
-    this.creepFactory.call();
   }
 
   @Override
@@ -184,6 +226,10 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     if (event instanceof GenericEvent) {
       if ((GenericEvent.Message)event.value == GenericEvent.Message.ADD_DRAWABLE) {
         this.drawables.add((Drawable) event.getSource());
+        
+        if (event.getSource() instanceof RenderBehaviour && !(event.getSource() instanceof ActorRenderBehaviour)) {
+          this.numTowers++;
+        }
       } else if ((GenericEvent.Message)event.value == GenericEvent.Message.REMOVE_DRAWABLE) {
         this.drawables.remove(event.getSource());
       }

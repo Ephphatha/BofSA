@@ -114,15 +114,20 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     
     return this.spriteSheet;
   }
-    
-  
-  public void spawnCreep(final CopyableVector2f pos, final Queue<CheckPoint> cps) {
+
+  public Sprite getSprite() {
     Sprite s;
     try {
       s = new Sprite(this.spriteSheet, this.spriteSheet.getWidth() / 8, this.spriteSheet.getHeight() / 8);
     } catch (RuntimeException e) {
       s = new Sprite(this.errorImage);
     }
+
+    return s;
+  }
+  
+  public void spawnCreep(final CopyableVector2f pos, final Queue<CheckPoint> cps) {
+    Sprite s = this.getSprite();
 
     Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 

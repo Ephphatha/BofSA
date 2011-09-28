@@ -46,7 +46,9 @@ public class InGameStateST implements GameState, CreepManager {
   protected GameLevelST map;
   
   private List<Tower> towers;
+  private List<Tower> towerBallast;
   private List<Creep> creeps;
+  private List<Creep> creepBallast;
   private Queue<Creep> deadCreeps;
   private Queue<Creep> newCreeps;
   
@@ -63,17 +65,19 @@ public class InGameStateST implements GameState, CreepManager {
     this.stateID = id;
 
     this.towers = new LinkedList<Tower>();
+    this.towerBallast = new LinkedList<Tower>();
     this.creeps = new LinkedList<Creep>();
+    this.creepBallast = new LinkedList<Creep>();
     this.deadCreeps = new LinkedList<Creep>();
     this.newCreeps = new LinkedList<Creep>();
+
+    this.creepFactory = new CreepFactory();
     
     this.logger = new Logger();
-    this.logger.start();
   }
 
   @Override
   public int getID() {
-    // TODO Auto-generated method stub
     return this.stateID;
   }
 
@@ -86,7 +90,16 @@ public class InGameStateST implements GameState, CreepManager {
       e.printStackTrace();
     }
     
-    this.logger.startLogging();
+    Vector2f dummy = new Vector2f(1,1);
+    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
+      this.towerBallast.add(Tower.createTower(dummy));
+    }
+    
+    for (int i = 0; i < 256; ++i) {
+      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
+    }
+    
+    this.logger.startLogging("SINGLETHREAD");
   }
 
   @Override
@@ -111,12 +124,20 @@ public class InGameStateST implements GameState, CreepManager {
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
     long start = System.nanoTime();
+
+    Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
+
+    for (int i = 0; i < this.towerBallast.size() - this.towers.size(); ++i) {
+      this.towerBallast.get(i).sprite.draw(g, tile);
+    }
+    
+    for (int i = 0; i < this.creepBallast.size() - this.creeps.size(); ++i) {
+      this.creepBallast.get(i).draw(g, tile);
+    }
     
     if (this.map != null) {
       this.map.render(container, g);
       
-      Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
-
       for (Creep c : this.creeps) {
         Vector2f p = c.getPosition();
         Rectangle r = new Rectangle(p.x * tile.getWidth(), p.y * tile.getHeight(), tile.getWidth(), tile.getHeight());
@@ -124,7 +145,7 @@ public class InGameStateST implements GameState, CreepManager {
       }
     }
     
-    this.logger.printMessage(new Logger.Message("Render", start, System.nanoTime() - start));
+    this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
@@ -180,9 +201,7 @@ public class InGameStateST implements GameState, CreepManager {
     
     this.deadCreeps.clear();
     
-    long end = System.nanoTime();
-    
-    this.logger.printMessage(new Logger.Message("Update", start, end - start));
+    this.logger.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
   }
 
   @Override
