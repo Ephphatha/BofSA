@@ -27,9 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
@@ -39,6 +39,8 @@ import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
+
+import au.edu.csu.bofsa.Logger.Mode;
 
 /**
  * @author ephphatha
@@ -50,7 +52,8 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   protected GameLevelST map;
   
   private Thread updateThread;
-  private ExecutorService pool;
+  private Thread daemonThread;
+  private ThreadPoolExecutor pool;
   List<Future<?>> tasks;
   
   private List<Tower> towers;
@@ -104,7 +107,38 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     int numThreads = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
     
-    this.pool = Executors.newFixedThreadPool(numThreads);
+    this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+    
+    this.daemonThread = new Thread(new Runnable(){
+      public void run() {
+        long sampleInterval = 5000;
+        
+        long last = System.nanoTime();
+        Logger logger = new Logger();
+        logger.setLogMode(Mode.DETAILED);
+        logger.startLogging("THREADCOUNT");
+        
+        while (!Thread.currentThread().isInterrupted()) {
+          
+          long current = System.nanoTime();
+
+          if (current - last >= sampleInterval) {
+            logger.taskRun(new Logger.Task("ActiveThreadCount", current, Long.valueOf(pool.getActiveCount())));
+            last = current;
+          } else {
+            try {
+              Thread.sleep(0, (int) (sampleInterval - (current - last)));
+            } catch (InterruptedException e) {
+              break;
+            }
+          }
+        }
+        
+        logger.stopLogging();
+      }
+    });
+    
+    this.daemonThread.setDaemon(true);
     
     Vector2f dummy = new Vector2f(1,1);
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
@@ -119,6 +153,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     this.logger.startLogging("DATAPARALLEL", numThreads);
     
+    this.daemonThread.start();
     this.updateThread.start();
   }
 
@@ -138,6 +173,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     }
     
     this.pool.shutdownNow();
+    this.daemonThread.interrupt();
     
     this.logger.stopLogging();
     
@@ -258,13 +294,19 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   }
 
   private void waitForPendingTasks() {
-    while (!this.tasks.isEmpty()) {
-      for (int i = this.tasks.size() - 1; i >= 0; --i) {
-        if (this.tasks.get(i).isDone()) {
-          this.tasks.remove(i);
-        }
+    int activeThreads = 0;
+    long last = System.nanoTime();
+    do {
+      activeThreads = this.pool.getActiveCount();
+      
+      long current = System.nanoTime();
+      
+      while (current - last < 15000) {
+        current = System.nanoTime();
       }
-    }
+      
+      last = current;
+    } while (activeThreads > 0);
   }
 
   @Override

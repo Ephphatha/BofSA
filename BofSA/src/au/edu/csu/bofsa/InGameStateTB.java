@@ -43,6 +43,7 @@ import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
 import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Logger.Mode;
 import au.edu.csu.bofsa.Signals.Signal;
 
 /**
@@ -73,6 +74,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   private List<Drawable> creepBallast;
 
   private int numTowers;
+
+  private Thread daemonThread;
 
   @SuppressWarnings("unused")
   private InGameStateTB() {
@@ -124,27 +127,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     
     this.logger.setLogMode(logMode);
     
-    this.scheduler.start(Scheduler.Mode.ORDERED_PRECOMPUTE, logMode);
-
-    this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
-
-    try {
-      this.map = new GameLevelTB("test", this.scheduler, this.creepFactory, this.towerFactory);
-    } catch (SlickException e) {
-      e.printStackTrace();
-    }
-
     Stream dummyStream = new Stream();
     Signal<CopyableVector2f> dummy = new Signal<CopyableVector2f>(new CopyableVector2f(1,1));
-    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
-      this.towerBallast.add(
-          new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)),
-              dummy,
-              this.tileSize,
-              this.towerFactory.getSprite(),
-              dummyStream));
-    }
-    
     Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(1));
     Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 
@@ -170,8 +154,63 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
               dummyStream));
     }
     
-    this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
+    this.daemonThread = new Thread(new Runnable(){
+      public void run() {
+        long sampleInterval = 5000;
+        
+        long last = System.nanoTime();
+        Logger logger = new Logger();
+        logger.setLogMode(Mode.DETAILED);
+        logger.startLogging("THREADCOUNT");
+        
+        while (!Thread.currentThread().isInterrupted()) {
+          
+          long current = System.nanoTime();
+
+          if (current - last >= sampleInterval) {
+            logger.taskRun(new Logger.Task("ActiveThreadCount", current, Long.valueOf(scheduler.getActiveCount())));
+            last = current;
+          } else {
+            try {
+              Thread.sleep(0, (int) (sampleInterval - (current - last)));
+            } catch (InterruptedException e) {
+              break;
+            }
+          }
+        }
+        
+        logger.stopLogging();
+      }
+    });
     
+    this.daemonThread.setDaemon(true);
+    
+    this.daemonThread.start();
+    
+    this.scheduler.start(Scheduler.Mode.ORDERED_PRECOMPUTE, logMode);
+
+    this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
+
+    try {
+      this.map = new GameLevelTB("test", this.scheduler, this.creepFactory, this.towerFactory);
+    } catch (SlickException e) {
+      e.printStackTrace();
+    }
+
+    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
+      this.towerBallast.add(
+          new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+              dummy,
+              this.tileSize,
+              this.towerFactory.getSprite(),
+              dummyStream));
+    }
+
+    this.tileSize.write(
+        new CopyableDimension(
+            container.getWidth() / this.map.getWidth(),
+            container.getHeight() / this.map.getHeight()));
+
     this.scheduler.call(this.creepFactory);
     this.scheduler.call(this.towerFactory);
     this.scheduler.call(this.input);
@@ -199,6 +238,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.creepFactory.handleEvent(new GenericEvent(this, GenericEvent.Message.FORGET_ALL, Event.Type.TARGETTED, System.nanoTime()));
 
     this.scheduler.stop();
+    
+    this.daemonThread.interrupt();
     
     this.drawables.clear();
     

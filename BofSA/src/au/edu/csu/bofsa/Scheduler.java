@@ -172,6 +172,10 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     }
   }
 
+  public int getActiveCount() {
+    return this.threads.size() - this.idleThreads.size();
+  }
+  
   protected Behaviour<?> getNextTask() {
     Behaviour<?> t = this.tasks.poll();
     
