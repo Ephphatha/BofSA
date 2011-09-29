@@ -65,20 +65,27 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
         } else if (e instanceof DamageEvent) {
           float hp = this.signal.read().getValue();
           Float damage = (Float) e.value;
+          
           hp -= damage.floatValue();
-          this.signal.write(new CopyableFloat(hp));
           
           if (hp <= 0.0f) {
-            this.creepStream.handleEvent(
-                new GenericEvent(
-                    this,
-                    GenericEvent.Message.DEATH,
-                    Event.Type.BROADCAST,
-                    e.time));
-          }
+//           this.creepStream.handleEvent(
+//               new GenericEvent(
+//                   this,
+//                   GenericEvent.Message.DEATH,
+//                   Event.Type.BROADCAST,
+//                   e.time));
+            hp = 0;
+         }
+          
+          this.signal.write(new CopyableFloat(hp));
         }
       }
     }
     return true;
+  }
+  
+  public boolean isReady() {
+    return !this.events.isEmpty();
   }
 }

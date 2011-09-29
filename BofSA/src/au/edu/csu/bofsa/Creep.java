@@ -283,11 +283,12 @@ public class Creep {
     
     while (!this.pendingDamage.isEmpty()) {
       this.attributes.hp -= this.pendingDamage.poll();
-    }
-    
-    if (this.attributes.hp <= 0.0f) {
-      cm.onDeath(this);
-      return;
+      
+      if (this.attributes.hp <= 0.0f) {
+//      cm.onDeath(this);
+        this.attributes.hp = 0;
+//      return;
+      }
     }
     
     this.calculateVelocity();

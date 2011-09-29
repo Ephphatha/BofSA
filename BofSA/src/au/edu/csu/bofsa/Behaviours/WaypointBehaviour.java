@@ -83,4 +83,8 @@ public class WaypointBehaviour extends Behaviour<CheckPoint> {
     
     return true;
   }
+  
+  public boolean isReady() {
+    return !this.events.isEmpty();
+  }
 }
