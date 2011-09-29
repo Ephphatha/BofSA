@@ -43,6 +43,7 @@ public class MainMenuState implements GameState {
 
   Image background;
   Button stButton,
+         dpButton,
          tbButton,
          exitButton;
   
@@ -79,8 +80,9 @@ public class MainMenuState implements GameState {
     
     Image buttons = new Image("assets/menubuttons.png");
     
-    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.2f, 0.4f, 0.2f), Color.green);
-    this.tbButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.4f, 0.4f, 0.2f), Color.cyan);
+    this.stButton = new Button(buttons.getSubImage(0, 0, 320, 64), new Rectangle(0.3f, 0.1f, 0.4f, 0.2f), Color.green);
+    this.dpButton = new Button(buttons.getSubImage(0, 128, 320, 64), new Rectangle(0.3f, 0.3f, 0.4f, 0.2f), Color.cyan);
+    this.tbButton = new Button(buttons.getSubImage(0, 64, 320, 64), new Rectangle(0.3f, 0.5f, 0.4f, 0.2f), Color.blue);
     this.exitButton = new Button(buttons.getSubImage(0, 192, 320, 64), new Rectangle(0.3f, 0.8f, 0.4f, 0.2f), Color.red);
   }
 
@@ -97,6 +99,7 @@ public class MainMenuState implements GameState {
     background.draw(0, 0, container.getWidth(), container.getHeight());
     
     this.stButton.render(container, g);
+    this.dpButton.render(container, g);
     this.tbButton.render(container, g);
     
     this.exitButton.render(container, g);
@@ -123,11 +126,15 @@ public class MainMenuState implements GameState {
                             (float) input.getMouseY() / (float) container.getHeight());
   
     this.stButton.mouseMove(p);
+    this.dpButton.mouseMove(p);
+    this.tbButton.mouseMove(p);
     this.exitButton.mouseMove(p);
     
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
       if (this.stButton.mousePressed(p)) {
         game.enterState(BofSA.States.SINGLE_THREAD.ordinal());
+      } else if (this.dpButton.mousePressed(p)) {
+        game.enterState(BofSA.States.DATA_PARALLEL.ordinal());
       } else if (this.tbButton.mousePressed(p)) {
         game.enterState(BofSA.States.TASK_BASED.ordinal());
       } else if (this.exitButton.mousePressed(p)) {

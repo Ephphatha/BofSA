@@ -98,6 +98,8 @@ public class InGameStateST implements GameState, CreepManager {
     for (int i = 0; i < 256; ++i) {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
+
+    this.logger.setLogMode(Logger.Mode.SAMPLE);
     
     this.logger.startLogging("SINGLETHREAD");
   }

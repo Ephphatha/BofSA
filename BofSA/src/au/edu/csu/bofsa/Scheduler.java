@@ -81,10 +81,18 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.mode = Mode.ORDERED_PRECOMPUTE;
   }
   
-  public void start() {
-    for (int i = 0; i < Runtime.getRuntime().availableProcessors(); ++i) {
-      Thread t = new WorkerThread(this);
-      this.threads.add(t);
+  public void start(Mode scheduleMode, Logger.Mode logMode) {
+    this.mode = scheduleMode;
+    
+    int numWorkers = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
+    
+    for (int i = 0; i < numWorkers; ++i) {
+      WorkerThread w = new WorkerThread(this);
+      w.getLogger().setLogMode(logMode);
+      this.threads.add(w);
+    }
+    
+    for (Thread t : this.threads) {
       t.start();
     }
     

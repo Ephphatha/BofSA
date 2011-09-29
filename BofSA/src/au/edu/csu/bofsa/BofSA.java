@@ -37,6 +37,7 @@ public class BofSA extends StateBasedGame {
   protected enum States {
     MAINMENU,
     SINGLE_THREAD,
+    DATA_PARALLEL,
     TASK_BASED
   }
 
@@ -59,6 +60,7 @@ public class BofSA extends StateBasedGame {
     
     this.addState(new MainMenuState(States.MAINMENU.ordinal()));
     this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal()));
+    this.addState(new InGameStateDP(States.DATA_PARALLEL.ordinal()));
     this.addState(new InGameStateTB(States.TASK_BASED.ordinal()));
     
     this.enterState(States.MAINMENU.ordinal());

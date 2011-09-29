@@ -118,7 +118,13 @@ public class Logger implements Runnable {
     }
   }
   
-  private boolean detailedLogging;
+  public static enum Mode {
+    DETAILED,
+    SAMPLE,
+    BASIC
+  }
+  
+  private Mode mode;
   private FileWriter detailFile;
   private SimpleDateFormat df;
   private Date startTime;
@@ -134,7 +140,7 @@ public class Logger implements Runnable {
     
     this.df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
     
-    this.detailedLogging = false;
+    this.mode = Mode.BASIC;
   }
 
   public void startLogging(String description) {
@@ -155,8 +161,8 @@ public class Logger implements Runnable {
     this.startTime = Calendar.getInstance().getTime();
   }
   
-  public boolean logDetailedInfo(boolean detailed) {
-    return this.detailedLogging = detailed;
+  public void setLogMode(Mode level) {
+    this.mode = level;
   }
   
   public void merge(Logger rhs) {
@@ -190,6 +196,9 @@ public class Logger implements Runnable {
   
   public void stopLogging() {
     this.flush();
+    
+    float duration = (Calendar.getInstance().getTime().getTime() - this.startTime.getTime()) / 1000;
+    
     try {
       FileWriter file = this.getFile(".log");
       
@@ -232,6 +241,7 @@ public class Logger implements Runnable {
 
           file.write("\nNumber of worker threads," + this.numWorkers + "\n");
           file.write("Total tasks executed," + numTasks + "\n");
+          file.write("Total user time (seconds)," + duration + "\n");
           file.write("Combined runtime (ns)," + totalRuntime + "\n");
           file.write("Tasks not ready when retrieved," + numRetries + "\n");
           file.write("Tasks not ready for immediate rerun," + numWaits + "\n");
@@ -247,7 +257,7 @@ public class Logger implements Runnable {
   }
   
   public void taskRun(Task m) {
-    if (this.detailedLogging) {
+    if (this.mode == Mode.DETAILED || (this.mode == Mode.SAMPLE && Math.random() >= 0.99)) {
       this.pendingMessages.add(m);
     }
 
@@ -304,25 +314,21 @@ public class Logger implements Runnable {
   }
   
   public void flush() {
-    if (!this.detailedLogging) {
-      return;
-    }
-    
-    if (this.detailFile == null) {
-      this.detailFile = this.getFile(".csv");
-      
-      if (this.detailFile != null) {
-        try {
-          this.detailFile.write("Name,Start Time,Runtime\n");
-        } catch (IOException e) {
-          //Goggles
-        }
-      }
-    }
-    
     while (!this.pendingMessages.isEmpty()) {
       Task m = this.pendingMessages.poll();
-      if (m != null && this.detailFile != null) {
+      if (m != null) {
+        if (this.detailFile == null) {
+          this.detailFile = this.getFile(".csv");
+          
+          if (this.detailFile != null) {
+            try {
+              this.detailFile.write("Name,Start Time,Runtime\n");
+            } catch (IOException e) {
+              //Goggles
+            }
+          }
+        }
+        
         try {
           synchronized (this.detailFile) {
             this.detailFile.write(m.toString());

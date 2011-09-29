@@ -25,6 +25,7 @@ package au.edu.csu.bofsa;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
@@ -64,14 +65,16 @@ public class Creep {
     }
   }
   
-  protected Vector2f position,
-                     goal,
+  volatile protected Vector2f position;
+  
+  protected Vector2f goal,
                      checkpoint,
                      velocity;
   
   protected Queue<CheckPoint> checkpoints;
+  protected Queue<Float> pendingDamage;
   
-  protected Sprite sprite;
+  volatile protected Sprite sprite;
   protected Sprite.SequencePoint[][] sequences;
   
   protected Direction currentDir;
@@ -160,6 +163,9 @@ public class Creep {
     } catch (NullPointerException e) {
       this.checkpoints = null;
     }
+    
+    this.pendingDamage = new ConcurrentLinkedQueue<Float>();
+    
     this.attributes = attributes;
     
     this.currentDir = Direction.NORTH;
@@ -232,7 +238,10 @@ public class Creep {
   private void setAnimationSequence(Direction dir) {
     if (this.currentDir != dir) {
       this.currentDir = dir;
-      this.sprite.setFrameSequence(this.sequences[this.currentDir.ordinal()]);
+      
+      synchronized (this.sprite) {
+        this.sprite.setFrameSequence(this.sequences[this.currentDir.ordinal()]);
+      }
     }
   }
   
@@ -241,8 +250,18 @@ public class Creep {
   }
 
   public void draw(Graphics g, Rectangle tile) {
-    Rectangle r = new Rectangle(this.position.x * tile.getWidth() - tile.getWidth() / 4.0f, this.position.y * tile.getHeight() - tile.getHeight() / 4.0f, tile.getWidth() / 2.0f, tile.getHeight() / 2.0f);
-    this.sprite.draw(g, r);
+    Rectangle r = null;
+    synchronized (this.position) {
+      r = new Rectangle(
+          this.position.x * tile.getWidth() - tile.getWidth() / 4.0f,
+          this.position.y * tile.getHeight() - tile.getHeight() / 4.0f,
+          tile.getWidth() / 2.0f,
+          tile.getHeight() / 2.0f);
+    }
+    
+    synchronized (this.sprite) {
+      this.sprite.draw(g, r);
+    }
     
     r.setHeight(r.getHeight() * 0.1f);
     
@@ -262,14 +281,20 @@ public class Creep {
   public void update(CreepManager cm, float dt) {
     this.update(dt);
     
+    while (!this.pendingDamage.isEmpty()) {
+      this.attributes.hp -= this.pendingDamage.poll();
+    }
+    
     if (this.attributes.hp <= 0.0f) {
       cm.onDeath(this);
       return;
     }
     
     this.calculateVelocity();
-  
-    this.position.add(this.velocity.copy().scale(dt));
+
+    synchronized (this.position) {
+      this.position.add(this.velocity.copy().scale(dt));
+    }
     
     if (this.checkpoint != null) {
       if (this.position.distanceSquared(this.checkpoint) < Math.pow(0.25f, 2)) {
@@ -285,6 +310,6 @@ public class Creep {
   }
 
   public void takeDamage(float damage) {
-    this.attributes.hp -= damage;
+    this.pendingDamage.offer(damage);
   }
 }

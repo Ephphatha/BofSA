@@ -56,11 +56,11 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   }
   
   public Behaviour(Signal<T> signal) {
-    this.inputs = new LinkedList<InputSignal<?>>();
     this.lastStartTime = System.nanoTime();
-    this.signal = signal;
     this.lastEndTime = System.nanoTime();
+    this.signal = signal;
     
+    this.inputs = new LinkedList<InputSignal<?>>();
     this.events = new ConcurrentLinkedQueue<Event>();
     
     this.deltaThreshold = 100000;
