@@ -77,14 +77,22 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
   private Thread daemonThread;
 
+  private Logger.Mode logMode;
+
+  private int maxThreads;
+
   @SuppressWarnings("unused")
   private InGameStateTB() {
-    this(0);
+    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC);
   }
   
-  public InGameStateTB(int id) {
+  public InGameStateTB(int id, int maxThreads, Logger.Mode logMode) {
     this.stateID = id;
 
+    this.maxThreads = maxThreads;
+    
+    this.logMode = logMode;
+    
     this.drawables = new CopyOnWriteArrayList<Drawable>();
 
     this.towerBallast = new LinkedList<Drawable>();
@@ -123,8 +131,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.creepFactory.loadResources();
     this.towerFactory.loadResources();
     
-    Logger.Mode logMode = Logger.Mode.SAMPLE;
-    
     this.logger.setLogMode(logMode);
     
     Stream dummyStream = new Stream();
@@ -162,6 +168,15 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
         Logger logger = new Logger();
         logger.setLogMode(Mode.DETAILED);
         logger.startLogging("THREADCOUNT");
+
+        while (System.nanoTime() - last < 10E9) {
+          try {
+            Thread.sleep(50);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
         
         while (!Thread.currentThread().isInterrupted()) {
           
@@ -185,9 +200,9 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     
     this.daemonThread.setDaemon(true);
     
-    this.daemonThread.start();
+    //this.daemonThread.start();
     
-    this.scheduler.start(Scheduler.Mode.ORDERED_PRECOMPUTE, logMode);
+    this.scheduler.start(Scheduler.Mode.ORDERED_PRECOMPUTE, this.maxThreads, this.logMode);
 
     this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
 
@@ -239,9 +254,12 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
     this.scheduler.stop();
     
-    this.daemonThread.interrupt();
+    //this.daemonThread.interrupt();
     
     this.drawables.clear();
+    
+    this.creepBallast.clear();
+    this.towerBallast.clear();
     
     this.logger.stopLogging();
     

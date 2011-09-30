@@ -26,10 +26,12 @@ package au.edu.csu.bofsa;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
@@ -39,8 +41,6 @@ import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
-
-import au.edu.csu.bofsa.Logger.Mode;
 
 /**
  * @author ephphatha
@@ -66,21 +66,30 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   private CreepFactory creepFactory;
   
   private Logger logger;
+  private Logger logger2;
+
+  private Logger.Mode logMode;
+
+  private int maxThreads;
 
   @SuppressWarnings("unused")
   private InGameStateDP() {
-    this(0);
+    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC);
   }
   
-  public InGameStateDP(int id) {
+  public InGameStateDP(int id, int maxThreads, Logger.Mode logMode) {
     this.stateID = id;
+    
+    this.maxThreads = maxThreads;
+    
+    this.logMode = logMode;
 
     this.towers = new LinkedList<Tower>();
     this.towerBallast = new LinkedList<Tower>();
     this.creeps = new CopyOnWriteArrayList<Creep>();
     this.creepBallast = new LinkedList<Creep>();
-    this.deadCreeps = new LinkedList<Creep>();
-    this.newCreeps = new LinkedList<Creep>();
+    this.deadCreeps = new ConcurrentLinkedQueue<Creep>();
+    this.newCreeps = new ConcurrentLinkedQueue<Creep>();
 
     this.creepFactory = new CreepFactory();
     
@@ -105,18 +114,28 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     this.updateThread = new Thread(this);
     
-    int numThreads = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
+    int numThreads = Math.max(this.maxThreads, 1);
+      //Math.max(Math.min(Runtime.getRuntime().availableProcessors() - 1, this.maxThreads), 1);
     
     this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
     
     this.daemonThread = new Thread(new Runnable(){
       public void run() {
-        long sampleInterval = 5000;
+        final long sampleInterval = 5000;
         
         long last = System.nanoTime();
         Logger logger = new Logger();
-        logger.setLogMode(Mode.DETAILED);
+        logger.setLogMode(Logger.Mode.DETAILED);
         logger.startLogging("THREADCOUNT");
+        
+        while (System.nanoTime() - last < 10E9) {
+          try {
+            Thread.sleep(50);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        }
         
         while (!Thread.currentThread().isInterrupted()) {
           
@@ -149,11 +168,14 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
 
-    this.logger.setLogMode(Logger.Mode.SAMPLE);
+    this.logger.setLogMode(this.logMode);
     
     this.logger.startLogging("DATAPARALLEL", numThreads);
     
-    this.daemonThread.start();
+    this.logger2 = new Logger();
+    this.logger2.setLogMode(this.logMode);
+    
+    //this.daemonThread.start();
     this.updateThread.start();
   }
 
@@ -172,12 +194,28 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
       //Goggles
     }
     
-    this.pool.shutdownNow();
-    this.daemonThread.interrupt();
+    this.pool.shutdown();
+    
+    try {
+      this.pool.awaitTermination(1, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      //Goggles
+    }
+    
+    if (this.pool.isTerminating()) {
+      this.pool.shutdownNow();
+    }
+    
+    //this.daemonThread.interrupt();
+    
+    this.logger.merge(this.logger2);
     
     this.logger.stopLogging();
     
     this.map = null;
+    
+    this.towerBallast.clear();
+    this.creepBallast.clear();
 
     this.towers.clear();
     this.creeps.clear();
@@ -243,15 +281,14 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     this.logger.taskRun(new Logger.Task("Input", start, System.nanoTime() - start));
   }
 
-  private void update(final float delta) {
+  public void update(final float delta) {
     long start = System.nanoTime();
     // Game logic
     
-    for (Creep c : this.newCreeps) {
+    while (!this.newCreeps.isEmpty()) {
+      Creep c = this.newCreeps.poll();
       this.creeps.add(c);
     }
-    
-    this.newCreeps.clear();
     
     this.map.update(this, delta);
     
@@ -284,29 +321,23 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
 
     this.waitForPendingTasks();
     
-    for (Creep c : this.deadCreeps) {
+    while (!this.deadCreeps.isEmpty()) {
+      Creep c = this.deadCreeps.poll();
       this.creeps.remove(c);
     }
     
-    this.deadCreeps.clear();
-
-    this.logger.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
+    this.logger2.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
   }
 
   private void waitForPendingTasks() {
-    int activeThreads = 0;
-    long last = System.nanoTime();
-    do {
-      activeThreads = this.pool.getActiveCount();
-      
-      long current = System.nanoTime();
-      
-      while (current - last < 15000) {
-        current = System.nanoTime();
+    while (!this.tasks.isEmpty() && !Thread.currentThread().isInterrupted()) {
+      for (int i = this.tasks.size() - 1; i >= 0; --i) {
+        Future<?> t = this.tasks.get(i);
+        if (t.isDone()) {
+          this.tasks.remove(i);
+        }
       }
-      
-      last = current;
-    } while (activeThreads > 0);
+    }
   }
 
   @Override
@@ -322,7 +353,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
 
   @Override
   public void onDeath(Creep c) {
-    this.deadCreeps.add(c);
+    this.deadCreeps.offer(c);
   }
 
   @Override
@@ -332,12 +363,12 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
 
   @Override
   public void goalReached(Creep c) {
-    this.deadCreeps.add(c);
+    this.deadCreeps.offer(c);
   }
 
   @Override
   public void onSpawn(Creep c) {
-    this.newCreeps.add(c);
+    this.newCreeps.offer(c);
   }
 
   @Override

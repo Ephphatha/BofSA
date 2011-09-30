@@ -56,12 +56,14 @@ public class InGameStateST implements GameState, CreepManager {
   
   private Logger logger;
 
+  private Logger.Mode logMode;
+
   @SuppressWarnings("unused")
   private InGameStateST() {
-    this(0);
+    this(0, Logger.Mode.BASIC);
   }
   
-  public InGameStateST(int id) {
+  public InGameStateST(int id, Logger.Mode logMode) {
     this.stateID = id;
 
     this.towers = new LinkedList<Tower>();
@@ -74,6 +76,8 @@ public class InGameStateST implements GameState, CreepManager {
     this.creepFactory = new CreepFactory();
     
     this.logger = new Logger();
+    
+    this.logMode = logMode;
   }
 
   @Override
@@ -99,7 +103,7 @@ public class InGameStateST implements GameState, CreepManager {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
 
-    this.logger.setLogMode(Logger.Mode.SAMPLE);
+    this.logger.setLogMode(this.logMode);
     
     this.logger.startLogging("SINGLETHREAD");
   }
@@ -116,6 +120,9 @@ public class InGameStateST implements GameState, CreepManager {
     
     this.map = null;
 
+    this.towerBallast.clear();
+    this.creepBallast.clear();
+    
     this.towers.clear();
     this.creeps.clear();
     this.deadCreeps.clear();
