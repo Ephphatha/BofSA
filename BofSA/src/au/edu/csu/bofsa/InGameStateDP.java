@@ -114,8 +114,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     this.updateThread = new Thread(this);
     
-    int numThreads = Math.max(this.maxThreads, 1);
-      //Math.max(Math.min(Runtime.getRuntime().availableProcessors() - 1, this.maxThreads), 1);
+    int numThreads = Math.max(Math.min(Runtime.getRuntime().availableProcessors() - 2, this.maxThreads), 1);
     
     this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
     
@@ -226,7 +225,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    long start = System.nanoTime();
+    //long start = System.nanoTime();
 
     Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
 
@@ -246,13 +245,13 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
       }
     }
     
-    this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
+    //this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
   public void update(GameContainer container, StateBasedGame game, int delta)
       throws SlickException {
-    long start = System.nanoTime();
+    //long start = System.nanoTime();
     
     Input input = container.getInput();
 
@@ -278,7 +277,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
       this.map.update(delta / 1000.0f);
     }
     
-    this.logger.taskRun(new Logger.Task("Input", start, System.nanoTime() - start));
+    //this.logger.taskRun(new Logger.Task("Input", start, System.nanoTime() - start));
   }
 
   public void update(final float delta) {

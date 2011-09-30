@@ -132,7 +132,7 @@ public class InGameStateST implements GameState, CreepManager {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    long start = System.nanoTime();
+    //long start = System.nanoTime();
 
     Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
 
@@ -154,7 +154,7 @@ public class InGameStateST implements GameState, CreepManager {
       }
     }
     
-    this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
+    //this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override

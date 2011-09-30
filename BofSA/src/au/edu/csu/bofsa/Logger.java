@@ -127,12 +127,13 @@ public class Logger implements Runnable {
   private Mode mode;
   private FileWriter detailFile;
   private SimpleDateFormat df;
-  private Date startTime;
+  private Date startDate;
   private String description;
   
   private Queue<Task> pendingMessages;
   private Map<String, TaskStats> taskStats;
   private int numWorkers;
+  private long startTime;
   
   public Logger() {
     this.pendingMessages = new ConcurrentLinkedQueue<Task>();
@@ -158,7 +159,8 @@ public class Logger implements Runnable {
       ms.reset();
     }
     
-    this.startTime = Calendar.getInstance().getTime();
+    this.startDate = Calendar.getInstance().getTime();
+    this.startTime = System.currentTimeMillis();
   }
   
   public void setLogMode(Mode level) {
@@ -197,11 +199,16 @@ public class Logger implements Runnable {
   public void stopLogging() {
     this.flush();
     
-    float duration = (Calendar.getInstance().getTime().getTime() - this.startTime.getTime()) / 1000;
+    float duration = (System.currentTimeMillis() - this.startTime) / 1000;
+
+    long numTasks = 0;
+    long totalRuntime = 0;
+    long numRetries = 0;
+    long numWaits = 0;
     
     try {
-      FileWriter file = this.getFile(".log");
-      
+      FileWriter file = this.getFile("_STATS.log");
+
       if (file != null) {
         try {
           file.write(
@@ -211,14 +218,8 @@ public class Logger implements Runnable {
               "Times not ready," +
               "Total runtime (ns)," +
               "Average runtime (ns)," +
-              "Sum of squares of differences (from running mean)," +
               "Standard Deviation (estimated)" +
               "\n");
-          
-          long numTasks = 0;
-          long totalRuntime = 0;
-          long numRetries = 0;
-          long numWaits = 0;
           
           for (Map.Entry<String, TaskStats> e : this.taskStats.entrySet()) {
             TaskStats ms = e.getValue();
@@ -229,7 +230,6 @@ public class Logger implements Runnable {
                 ms.waitCount + "," +
                 ms.totalRuntime + "," +
                 ms.meanRuntime + "," +
-                ms.sumSquaresRuntime + "," +
                 Double.toString(Math.sqrt(ms.sumSquaresRuntime.get() / ms.executionCount.get())) +
                 "\n");
             
@@ -238,15 +238,35 @@ public class Logger implements Runnable {
             numRetries += ms.retryCount.get();
             numWaits += ms.waitCount.get();
           }
-
-          file.write("\nNumber of worker threads," + this.numWorkers + "\n");
-          file.write("Total tasks executed," + numTasks + "\n");
-          file.write("Total user time (seconds)," + duration + "\n");
-          file.write("Combined runtime (ns)," + totalRuntime + "\n");
-          file.write("Tasks not ready when retrieved," + numRetries + "\n");
-          file.write("Tasks not ready for immediate rerun," + numWaits + "\n");
         } finally {
           file.close();
+        }
+      }
+
+      FileWriter summary = this.getFile(".log");
+      
+      if (summary != null) {
+        try {
+
+          summary.write(
+              "Number of worker threads," +
+              "Total user time (seconds)," +
+              "Total tasks executed," +
+              "Tasks not ready when retrieved," +
+              "Tasks not ready for immediate rerun," +
+              "Combined runtime (ns)" +
+              "\n");
+          
+          summary.write(
+              this.numWorkers + "," +
+              duration + "," +
+              numTasks + "," +
+              numRetries + "," +
+              numWaits + "," +
+              totalRuntime +
+              "\n");
+        } finally {
+          summary.close();
         }
       }
     } catch (IOException e) {
@@ -343,7 +363,7 @@ public class Logger implements Runnable {
   private FileWriter getFile(String extension) {
     try {
       return new FileWriter(
-          this.df.format(this.startTime) +
+          this.df.format(this.startDate) +
           (this.description != null ? ("_" + this.description) : "" ) +
           extension);
     } catch (IOException e) {

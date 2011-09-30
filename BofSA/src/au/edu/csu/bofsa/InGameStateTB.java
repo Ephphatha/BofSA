@@ -269,7 +269,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    long start = System.nanoTime();
+    //long start = System.nanoTime();
     
     for (int i = 0; i < this.towerBallast.size() - this.numTowers; ++i) {
       this.towerBallast.get(i).draw(g);
@@ -287,7 +287,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
       }
     }
 
-    this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
+    //this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
