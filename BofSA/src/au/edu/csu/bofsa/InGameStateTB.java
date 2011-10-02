@@ -202,7 +202,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     
     //this.daemonThread.start();
     
-    this.scheduler.start(Scheduler.Mode.ORDERED_PRECOMPUTE, this.maxThreads, this.logMode);
+    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads, this.logMode);
 
     this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
 

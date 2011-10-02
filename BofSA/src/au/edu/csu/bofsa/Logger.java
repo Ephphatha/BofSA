@@ -239,16 +239,17 @@ public class Logger implements Runnable {
             numWaits += ms.waitCount.get();
           }
         } finally {
+          file.flush();
           file.close();
         }
       }
 
-      FileWriter summary = this.getFile(".log");
+      file = this.getFile(".log");
       
-      if (summary != null) {
+      if (file != null) {
         try {
 
-          summary.write(
+          file.write(
               "Number of worker threads," +
               "Total user time (seconds)," +
               "Total tasks executed," +
@@ -257,7 +258,7 @@ public class Logger implements Runnable {
               "Combined runtime (ns)" +
               "\n");
           
-          summary.write(
+          file.write(
               this.numWorkers + "," +
               duration + "," +
               numTasks + "," +
@@ -266,7 +267,8 @@ public class Logger implements Runnable {
               totalRuntime +
               "\n");
         } finally {
-          summary.close();
+          file.flush();
+          file.close();
         }
       }
     } catch (IOException e) {
@@ -356,6 +358,14 @@ public class Logger implements Runnable {
         } catch (IOException e) {
           //Goggles
         }
+      }
+    }
+    
+    if (this.detailFile != null) {
+      try {
+        this.detailFile.flush();
+      } catch (IOException e) {
+        //Goggles
       }
     }
   }
