@@ -199,7 +199,7 @@ public class Logger implements Runnable {
   public void stopLogging() {
     this.flush();
     
-    float duration = (System.currentTimeMillis() - this.startTime) / 1000;
+    float duration = (System.currentTimeMillis() - this.startTime) / 1000.0f;
 
     long numTasks = 0;
     long totalRuntime = 0;
