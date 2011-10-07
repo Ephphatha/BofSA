@@ -54,7 +54,7 @@ public class AttackBehaviour extends Behaviour<CopyableBoolean> {
       InputSignal<CopyableFloat> fireRate,
       InputSignal<CopyableFloat> damage,
       InputSignal<CopyableFloat> range) {
-    super(signal);
+    super(AttackBehaviour.class.getSimpleName(), signal);
     
     this.targets = targets;
     this.position = position;

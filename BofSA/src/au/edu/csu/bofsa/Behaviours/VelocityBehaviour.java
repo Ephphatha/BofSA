@@ -46,7 +46,7 @@ public class VelocityBehaviour extends Behaviour<CopyableVector2f>{
    * @param signal
    */
   public VelocityBehaviour(Signal<CopyableVector2f> velocity, InputSignal<CopyableVector2f> position, InputSignal<CheckPoint> goal, InputSignal<CopyableFloat> maxSpeed, Stream creepStream) {
-    super(velocity);
+    super(VelocityBehaviour.class.getSimpleName(), velocity);
 
     this.addInput(position);
     

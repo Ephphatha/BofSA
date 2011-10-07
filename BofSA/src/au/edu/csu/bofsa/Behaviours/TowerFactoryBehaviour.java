@@ -90,7 +90,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
   }
   
   public TowerFactoryBehaviour(Signal<CopyableList<CopyablePoint>> signal, InputSignal<CopyableDimension> tileSize, InputSignal<CopyableList<Pipe<CopyableVector2f>>> creeps, EventSink drawWatcher, EventSink behaviourWatcher) {
-    super(signal);
+    super(TowerFactoryBehaviour.class.getSimpleName(), signal);
     
     this.tileSize = tileSize;
     this.creeps = creeps;

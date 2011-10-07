@@ -55,7 +55,7 @@ public class InputPollingBehaviour extends Behaviour<CopyableBoolean> implements
       Signal<CopyableBoolean> dummy,
       InputSignal<CopyableDimension> tileSize,
       EventSink broadcastStream) {
-    super(dummy);
+    super(InputPollingBehaviour.class.getSimpleName(), dummy);
     
     super.addInput(tileSize);
     

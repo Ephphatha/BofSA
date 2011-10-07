@@ -71,16 +71,20 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   private Logger.Mode logMode;
 
   private int maxThreads;
+  private int numTowers;
+
+  private Logger dummyLogger;
 
   @SuppressWarnings("unused")
   private InGameStateDP() {
-    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC);
+    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
   }
   
-  public InGameStateDP(int id, int maxThreads, Logger.Mode logMode) {
+  public InGameStateDP(int id, int maxThreads, Logger.Mode logMode, int numTowers) {
     this.stateID = id;
     
     this.maxThreads = maxThreads;
+    this.numTowers = numTowers;
     
     this.logMode = logMode;
 
@@ -166,6 +170,10 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     for (int i = 0; i < 1024; ++i) {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
+    
+    for (int i = 0; i < this.numTowers; ++i) {
+      this.towers.add(Tower.createTower(dummy));
+    }
 
     this.logger.setLogMode(this.logMode);
     
@@ -173,6 +181,9 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     this.logger2 = new Logger();
     this.logger2.setLogMode(this.logMode);
+
+    this.dummyLogger = new Logger();
+    this.dummyLogger.setLogMode(this.logMode);
     
     //this.daemonThread.start();
     this.updateThread.start();
@@ -208,6 +219,9 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     //this.daemonThread.interrupt();
     
     this.logger.merge(this.logger2);
+    
+    this.logger2 = null;
+    this.dummyLogger = null;
     
     this.logger.stopLogging();
     
@@ -290,6 +304,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     }
     
     this.map.update(this, delta);
+    this.dummyLogger.taskRun("Spawn");
     
     for (final Tower t : this.towers) {
       this.tasks.offer(
@@ -297,6 +312,8 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
           new Runnable() {
             public void run() {
               t.update(delta, creeps);
+              dummyLogger.taskRun("Attack");
+              dummyLogger.taskRun("Render");
             }
           }
         )
@@ -312,6 +329,12 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
           new Runnable() {
             public void run() {
               c.update(man, delta);
+              dummyLogger.taskRun("Move");
+              dummyLogger.taskRun("Velocity");
+              dummyLogger.taskRun("Collision");
+              dummyLogger.taskRun("Waypoint");
+              dummyLogger.taskRun("Health");
+              dummyLogger.taskRun("Render");
             }
           }
         )

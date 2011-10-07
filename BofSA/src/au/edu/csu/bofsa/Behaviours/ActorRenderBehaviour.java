@@ -101,7 +101,7 @@ public class ActorRenderBehaviour extends RenderBehaviour{
       Sprite.SequencePoint[][] sequences,
       Stream creepStream,
       EventSink drawWatcher) {
-    super(signal, position, tileSize, sprite, drawWatcher);
+    super(ActorRenderBehaviour.class.getSimpleName(), signal, position, tileSize, sprite, drawWatcher);
     
     this.velocity = velocity;
     this.health = health;

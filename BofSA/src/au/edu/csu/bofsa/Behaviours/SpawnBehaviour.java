@@ -64,7 +64,7 @@ public class SpawnBehaviour extends Behaviour<CopyableLong> {
       InputSignal<CopyableFloat> spawnInterval,
       InputSignal<CopyableFloat> lullDuration,
       EventSink creepBuilder) {
-    super(lastStateChange);
+    super(SpawnBehaviour.class.getSimpleName(), lastStateChange);
     
     this.position = position;
     this.checkpoints = checkpoints;

@@ -54,7 +54,7 @@ public class CollisionBehaviour extends Behaviour<CopyableBoolean> implements Ev
       InputSignal<CopyableFloat> radius,
       InputSignal<CheckPoint> collider,
       Stream creepStream) {
-    super(signal);
+    super(CollisionBehaviour.class.getSimpleName(), signal);
 
     this.addInput(object);
     

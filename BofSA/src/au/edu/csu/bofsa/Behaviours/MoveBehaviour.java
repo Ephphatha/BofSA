@@ -43,7 +43,7 @@ public class MoveBehaviour extends Behaviour<CopyableVector2f> {
       Signal<CopyableVector2f> position,
       InputSignal<CopyableVector2f> velocity,
       Stream creepStream) {
-    super(position);
+    super(MoveBehaviour.class.getSimpleName(), position);
 
     this.addInput(velocity);
     

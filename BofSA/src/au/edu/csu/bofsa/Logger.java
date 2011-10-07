@@ -236,11 +236,6 @@ public class Logger implements Runnable {
                   ms.meanRuntime + "," +
                   Double.toString(Math.sqrt(ms.sumSquaresRuntime.get() / ms.executionCount.get())) +
                   "\n");
-              
-              numTasks += ms.executionCount.get();
-              totalRuntime += ms.totalRuntime.get();
-              numRetries += ms.retryCount.get();
-              numWaits += ms.waitCount.get();
             }
           } finally {
             file.flush();
@@ -262,6 +257,11 @@ public class Logger implements Runnable {
             
             headings.append(e.getKey() + ",");
             totals.append(ms.executionCount + ",");
+            
+            numTasks += ms.executionCount.get();
+            totalRuntime += ms.totalRuntime.get();
+            numRetries += ms.retryCount.get();
+            numWaits += ms.waitCount.get();
           }
           
           file.write(
@@ -296,6 +296,8 @@ public class Logger implements Runnable {
   }
   
   public void taskRun(Task m) {
+    this.taskRun(m.name);
+    
     if (this.mode == Mode.DETAILED || (this.mode == Mode.SAMPLE && Math.random() >= 0.99)) {
       this.pendingMessages.add(m);
     }
@@ -312,46 +314,60 @@ public class Logger implements Runnable {
     }
   
     if (this.mode == Mode.SAMPLE) {
-      long n = ms.executionCount.incrementAndGet();
       ms.totalRuntime.addAndGet(m.duration);
       
       double xbar_n1 = ms.meanRuntime.get();
       
-      double xbar_n = xbar_n1 + (m.duration - xbar_n1) / n;
+      double xbar_n = xbar_n1 + (m.duration - xbar_n1) / ms.executionCount.get();
       
       ms.meanRuntime.set(xbar_n);
       ms.sumSquaresRuntime.set(ms.sumSquaresRuntime.get() + (m.duration - xbar_n) * (m.duration - xbar_n1));
     }
   }
-
-  public void taskWaited(String m) {
-    if (!this.taskStats.containsKey(m)) {
+  
+  public void taskRun(String m) {
+    TaskStats ms = this.taskStats.get(m);
+    
+    if (ms == null) {
       synchronized (this.taskStats) {
         if (!this.taskStats.containsKey(m)) {
-          this.taskStats.put(m, new TaskStats());
+          ms = new TaskStats();
+          this.taskStats.put(m, ms);
         }
       }
     }
+  
+    ms.executionCount.incrementAndGet();
+  }
+
+  public void taskWaited(String m) {
+    TaskStats ms = this.taskStats.get(m);
     
-    if (this.taskStats.containsKey(m)) {
-      TaskStats ms = this.taskStats.get(m);
-      ms.waitCount.incrementAndGet();
+    if (ms == null) {
+      synchronized (this.taskStats) {
+        if (!this.taskStats.containsKey(m)) {
+          ms = new TaskStats();
+          this.taskStats.put(m, ms);
+        }
+      }
     }
+  
+    ms.waitCount.incrementAndGet();
   }
 
   public void taskRetried(String m) {
-    if (!this.taskStats.containsKey(m)) {
+    TaskStats ms = this.taskStats.get(m);
+    
+    if (ms == null) {
       synchronized (this.taskStats) {
         if (!this.taskStats.containsKey(m)) {
-          this.taskStats.put(m, new TaskStats());
+          ms = new TaskStats();
+          this.taskStats.put(m, ms);
         }
       }
     }
-    
-    if (this.taskStats.containsKey(m)) {
-      TaskStats ms = this.taskStats.get(m);
-      ms.retryCount.incrementAndGet();
-    }
+  
+    ms.retryCount.incrementAndGet();
   }
   
   public void flush() {

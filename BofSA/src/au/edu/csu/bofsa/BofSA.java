@@ -47,6 +47,7 @@ public class BofSA extends StateBasedGame {
   public static void main(String[] args) {
     //Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 2);
     int maxThreads = Runtime.getRuntime().availableProcessors();
+    int numTowers = 0;
     
     Logger.Mode logMode = Logger.Mode.BASIC;
     
@@ -65,11 +66,17 @@ public class BofSA extends StateBasedGame {
         } else {
           logMode = Logger.Mode.BASIC;
         }
+      } else if (s.startsWith("-n")) {
+        try {
+          numTowers = Integer.parseInt(s.substring(2));
+        } catch (NumberFormatException e) {
+          //Goggles
+        }
       }
     }
     
     try {
-      AppGameContainer app = new AppGameContainer(new BofSA(maxThreads, logMode));
+      AppGameContainer app = new AppGameContainer(new BofSA(maxThreads, logMode, numTowers));
       app.setDisplayMode(800, 600, false);
       app.start();
     } catch (SlickException e) {
@@ -78,24 +85,24 @@ public class BofSA extends StateBasedGame {
   }
   
   public BofSA() {
-    this(Integer.MAX_VALUE, Logger.Mode.BASIC);
+    this(Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
   }
   
   public BofSA(int maxThreads) {
-    this(maxThreads, Logger.Mode.BASIC);
+    this(maxThreads, Logger.Mode.BASIC, 0);
   }
   
   public BofSA(Logger.Mode logMode) {
-    this(Integer.MAX_VALUE, logMode);
+    this(Integer.MAX_VALUE, logMode, 0);
   }
   
-  public BofSA(int maxThreads, Logger.Mode logMode) {
+  public BofSA(int maxThreads, Logger.Mode logMode, int numTowers) {
     super("Bank of SA");
     
     this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal(), logMode));
-    this.addState(new InGameStateDP(States.DATA_PARALLEL.ordinal(), maxThreads, logMode));
-    this.addState(new InGameStateTB(States.TASK_BASED.ordinal(), maxThreads, logMode));
+    this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal(), logMode, numTowers));
+    this.addState(new InGameStateDP(States.DATA_PARALLEL.ordinal(), maxThreads, logMode, numTowers));
+    this.addState(new InGameStateTB(States.TASK_BASED.ordinal(), maxThreads, logMode, numTowers));
     
     this.enterState(States.MAINMENU.ordinal());
   }

@@ -62,7 +62,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
   protected EventSink drawWatcher;
   
   public CreepFactoryBehaviour(Signal<CopyableList<Pipe<CopyableVector2f>>> signal, InputSignal<CopyableDimension> tileSize, EventSink behaviourWatcher, EventSink drawWatcher) {
-    super(signal);
+    super(CreepFactoryBehaviour.class.getSimpleName(), signal);
     
     super.addInput(tileSize);
     

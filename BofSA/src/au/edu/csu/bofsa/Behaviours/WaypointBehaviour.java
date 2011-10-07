@@ -43,7 +43,7 @@ public class WaypointBehaviour extends Behaviour<CheckPoint> {
   protected Stream creepStream;
 
   public WaypointBehaviour(Signal<CheckPoint> goal, Queue<CheckPoint> waypoints, Stream creepStream) {
-    super(goal);
+    super(WaypointBehaviour.class.getSimpleName(), goal);
     
     if (waypoints.isEmpty()) {
       throw new IllegalArgumentException("Must be at least one waypoint.");

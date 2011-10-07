@@ -49,13 +49,10 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   protected Queue<Event> events;
   
   protected long deltaThreshold;
+  protected final String name;
 
-  @SuppressWarnings("unused")
-  private Behaviour() {
-    //Goggles
-  }
-  
-  public Behaviour(Signal<T> signal) {
+  public Behaviour(String name, Signal<T> signal) {
+    this.name = name;
     this.lastStartTime = System.nanoTime();
     this.lastEndTime = System.nanoTime();
     this.signal = signal;
@@ -126,5 +123,9 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   
   public int compareTo(Object o) {
     return this.hashCode() - o.hashCode();
+  }
+
+  public String getName() {
+    return this.name;
   }
 }

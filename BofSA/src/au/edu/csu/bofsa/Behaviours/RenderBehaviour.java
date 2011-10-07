@@ -63,7 +63,17 @@ public class RenderBehaviour extends Behaviour<CopyableBoolean> implements
       InputSignal<CopyableDimension> tileSize,
       Sprite sprite,
       EventSink drawWatcher) {
-    super(signal);
+    this(RenderBehaviour.class.getSimpleName(), signal, position, tileSize, sprite, drawWatcher);
+  }
+  
+  protected RenderBehaviour(
+      String name,
+      Signal<CopyableBoolean> signal,
+      InputSignal<CopyableVector2f> position,
+      InputSignal<CopyableDimension> tileSize,
+      Sprite sprite,
+      EventSink drawWatcher) {
+    super(name, signal);
     
     this.position = position;
     this.tileSize = tileSize;

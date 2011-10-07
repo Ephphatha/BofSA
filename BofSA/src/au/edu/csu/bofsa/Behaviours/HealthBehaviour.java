@@ -42,7 +42,7 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
   protected EventSink controller;
 
   public HealthBehaviour(Signal<CopyableFloat> signal, Stream creepStream, EventSink controller) {
-    super(signal);
+    super(HealthBehaviour.class.getSimpleName(), signal);
     
     this.creepStream = creepStream;
     

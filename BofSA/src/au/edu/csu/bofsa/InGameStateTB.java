@@ -73,7 +73,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   private List<Drawable> towerBallast;
   private List<Drawable> creepBallast;
 
-  private int numTowers;
+  private int towerCount;
 
   private Thread daemonThread;
 
@@ -81,14 +81,17 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
   private int maxThreads;
 
+  private int numTowers;
+
   @SuppressWarnings("unused")
   private InGameStateTB() {
-    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC);
+    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
   }
   
-  public InGameStateTB(int id, int maxThreads, Logger.Mode logMode) {
+  public InGameStateTB(int id, int maxThreads, Logger.Mode logMode, int numTowers) {
     this.stateID = id;
 
+    this.numTowers = numTowers;
     this.maxThreads = maxThreads;
     
     this.logMode = logMode;
@@ -214,11 +217,17 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
       this.towerBallast.add(
-          new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+          new RenderBehaviour(
+              new Signal<CopyableBoolean>(new CopyableBoolean(true)),
               dummy,
               this.tileSize,
               this.towerFactory.getSprite(),
               dummyStream));
+    }
+    
+    CopyablePoint dummy2 = new CopyablePoint(0,0);
+    for (int i = 0; i < this.numTowers; ++i) {
+      this.towerFactory.createTower(dummy2);
     }
 
     this.tileSize.write(
@@ -237,7 +246,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void init(GameContainer container, StateBasedGame game)
       throws SlickException {
-    this.numTowers = 0;
+    this.towerCount = 0;
     
     this.broadcastStream.addSink(this);
     
@@ -263,7 +272,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     
     this.logger.stopLogging();
     
-    this.numTowers = 0;
+    this.towerCount = 0;
   }
 
   @Override
@@ -271,11 +280,11 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
       throws SlickException {
     //long start = System.nanoTime();
     
-    for (int i = 0; i < this.towerBallast.size() - this.numTowers; ++i) {
+    for (int i = 0; i < this.towerBallast.size() - this.towerCount; ++i) {
       this.towerBallast.get(i).draw(g);
     }
     
-    for (int i = 0; i < this.creepBallast.size() - (this.drawables.size() - this.numTowers); ++i) {
+    for (int i = 0; i < this.creepBallast.size() - (this.drawables.size() - this.towerCount); ++i) {
       this.creepBallast.get(i).draw(g);
     }
     
@@ -307,7 +316,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
         this.drawables.add((Drawable) event.getSource());
         
         if (event.getSource() instanceof RenderBehaviour && !(event.getSource() instanceof ActorRenderBehaviour)) {
-          this.numTowers++;
+          this.towerCount++;
         }
       } else if ((GenericEvent.Message)event.value == GenericEvent.Message.REMOVE_DRAWABLE) {
         this.drawables.remove(event.getSource());

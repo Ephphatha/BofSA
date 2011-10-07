@@ -65,7 +65,8 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
 
             if (c instanceof Behaviour<?>) {
               Behaviour<?> b = (Behaviour<?>) c;
-              this.logger.taskRun(new Logger.Task(b.getClass().getSimpleName(), b.getLastStartTime(), b.getLastRunTime()));
+              //this.logger.taskRun(new Logger.Task(b.getClass().getSimpleName(), b.getLastStartTime(), b.getLastRunTime()));
+              this.logger.taskRun(b.getName());
             }
           } catch (InterruptedException e) {
             break;
