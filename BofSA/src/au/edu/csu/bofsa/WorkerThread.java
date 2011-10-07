@@ -77,7 +77,7 @@ public class WorkerThread extends Thread implements Caller<Boolean> {
       
       this.scheduler.slice(this);
       
-      Thread.yield();
+      //Thread.yield();
     }
   }
 

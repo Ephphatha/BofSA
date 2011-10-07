@@ -145,7 +145,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
       }
     }
     
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < 1024; ++i) {
       this.creepBallast.add(
           new ActorRenderBehaviour(
               new Signal<CopyableBoolean>(new CopyableBoolean(true)),

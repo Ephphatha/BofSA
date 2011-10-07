@@ -99,7 +99,7 @@ public class InGameStateST implements GameState, CreepManager {
       this.towerBallast.add(Tower.createTower(dummy));
     }
     
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < 1024; ++i) {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
 

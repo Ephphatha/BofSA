@@ -84,7 +84,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   public void start(Mode scheduleMode, int maxThreads, Logger.Mode logMode) {
     this.mode = scheduleMode;
     
-    int numWorkers = Math.max(Math.min(Runtime.getRuntime().availableProcessors() - 1, maxThreads), 1);
+    int numWorkers = Math.max(maxThreads - 1, 1);
     
     for (int i = 0; i < numWorkers; ++i) {
       WorkerThread w = new WorkerThread(this);
@@ -160,7 +160,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       WorkerThread w = this.idleThreads.poll();
       
       if (w != null) {
-        w.setPriority(Thread.NORM_PRIORITY + 1);
+        w.setPriority(Thread.NORM_PRIORITY /*+ 1*/);
         w.call(t);
   
         t = this.getNextTask();

@@ -52,9 +52,9 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   protected GameLevelST map;
   
   private Thread updateThread;
-  private Thread daemonThread;
+  //private Thread daemonThread;
   private ThreadPoolExecutor pool;
-  List<Future<?>> tasks;
+  private Queue<Future<?>> tasks;
   
   private List<Tower> towers;
   private List<Tower> towerBallast;
@@ -114,11 +114,11 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     this.updateThread = new Thread(this);
     
-    int numThreads = Math.max(Math.min(Runtime.getRuntime().availableProcessors() - 2, this.maxThreads), 1);
+    int numThreads = Math.max(this.maxThreads - 2, 1);
     
     this.pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
     
-    this.daemonThread = new Thread(new Runnable(){
+    /*this.daemonThread = new Thread(new Runnable(){
       public void run() {
         final long sampleInterval = 5000;
         
@@ -154,16 +154,16 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
         
         logger.stopLogging();
       }
-    });
+    });*/
     
-    this.daemonThread.setDaemon(true);
+    //this.daemonThread.setDaemon(true);
     
     Vector2f dummy = new Vector2f(1,1);
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
       this.towerBallast.add(Tower.createTower(dummy));
     }
     
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < 1024; ++i) {
       this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
     }
 
@@ -292,7 +292,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     this.map.update(this, delta);
     
     for (final Tower t : this.towers) {
-      this.tasks.add(
+      this.tasks.offer(
         this.pool.submit(
           new Runnable() {
             public void run() {
@@ -307,7 +307,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     
     final CreepManager man = this;
     for (final Creep c : this.creeps) {
-      this.tasks.add(
+      this.tasks.offer(
         this.pool.submit(
           new Runnable() {
             public void run() {
@@ -330,11 +330,11 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
 
   private void waitForPendingTasks() {
     while (!this.tasks.isEmpty() && !Thread.currentThread().isInterrupted()) {
-      for (int i = this.tasks.size() - 1; i >= 0; --i) {
-        Future<?> t = this.tasks.get(i);
-        if (t.isDone()) {
-          this.tasks.remove(i);
-        }
+      Future<?> t = this.tasks.poll();
+      if (t.isDone()) {
+        continue;
+      } else {
+        this.tasks.offer(t);
       }
     }
   }

@@ -45,7 +45,7 @@ public class BofSA extends StateBasedGame {
    * @param args
    */
   public static void main(String[] args) {
-    Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 2);
+    //Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 2);
     int maxThreads = Runtime.getRuntime().availableProcessors();
     
     Logger.Mode logMode = Logger.Mode.BASIC;

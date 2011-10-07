@@ -207,40 +207,45 @@ public class Logger implements Runnable {
     long numWaits = 0;
     
     try {
-      FileWriter file = this.getFile("_STATS.log");
-
-      if (file != null) {
-        try {
-          file.write(
-              "Task name," +
-              "Times executed," +
-              "Times retried," +
-              "Times not ready," +
-              "Total runtime (ns)," +
-              "Average runtime (ns)," +
-              "Standard Deviation (estimated)" +
-              "\n");
-          
-          for (Map.Entry<String, TaskStats> e : this.taskStats.entrySet()) {
-            TaskStats ms = e.getValue();
+      FileWriter file;
+      
+      if (this.mode == Mode.SAMPLE) {
+        file = this.getFile("_STATS.log");
+  
+        if (file != null) {
+          try {
             file.write(
-                e.getKey() + "," +
-                ms.executionCount + "," +
-                ms.retryCount + "," +
-                ms.waitCount + "," +
-                ms.totalRuntime + "," +
-                ms.meanRuntime + "," +
-                Double.toString(Math.sqrt(ms.sumSquaresRuntime.get() / ms.executionCount.get())) +
+                "Task name," +
+                "Times executed," +
+                "Times retried," +
+                "Times not ready," +
+                "Total runtime (ns)," +
+                "Average runtime (ns)," +
+                "Standard Deviation (estimated)" +
                 "\n");
-            
-            numTasks += ms.executionCount.get();
-            totalRuntime += ms.totalRuntime.get();
-            numRetries += ms.retryCount.get();
-            numWaits += ms.waitCount.get();
+
+            for (Map.Entry<String, TaskStats> e : this.taskStats.entrySet()) {
+              TaskStats ms = e.getValue();
+              
+              file.write(
+                  e.getKey() + "," +
+                  ms.executionCount + "," +
+                  ms.retryCount + "," +
+                  ms.waitCount + "," +
+                  ms.totalRuntime + "," +
+                  ms.meanRuntime + "," +
+                  Double.toString(Math.sqrt(ms.sumSquaresRuntime.get() / ms.executionCount.get())) +
+                  "\n");
+              
+              numTasks += ms.executionCount.get();
+              totalRuntime += ms.totalRuntime.get();
+              numRetries += ms.retryCount.get();
+              numWaits += ms.waitCount.get();
+            }
+          } finally {
+            file.flush();
+            file.close();
           }
-        } finally {
-          file.flush();
-          file.close();
         }
       }
 
@@ -249,13 +254,24 @@ public class Logger implements Runnable {
       if (file != null) {
         try {
 
+          StringBuilder headings = new StringBuilder();
+          StringBuilder totals = new StringBuilder();
+
+          for (Map.Entry<String, TaskStats> e : this.taskStats.entrySet()) {
+            TaskStats ms = e.getValue();
+            
+            headings.append(e.getKey() + ",");
+            totals.append(ms.executionCount + ",");
+          }
+          
           file.write(
               "Number of worker threads," +
               "Total user time (seconds)," +
               "Total tasks executed," +
               "Tasks not ready when retrieved," +
               "Tasks not ready for immediate rerun," +
-              "Combined runtime (ns)" +
+              "Combined runtime (ns)," +
+              headings.toString() +
               "\n");
           
           file.write(
@@ -264,7 +280,8 @@ public class Logger implements Runnable {
               numTasks + "," +
               numRetries + "," +
               numWaits + "," +
-              totalRuntime +
+              totalRuntime + "," +
+              totals.toString() +
               "\n");
         } finally {
           file.flush();
@@ -294,15 +311,17 @@ public class Logger implements Runnable {
       }
     }
   
-    long n = ms.executionCount.incrementAndGet();
-    ms.totalRuntime.addAndGet(m.duration);
-    
-    double xbar_n1 = ms.meanRuntime.get();
-    
-    double xbar_n = xbar_n1 + (m.duration - xbar_n1) / n;
-    
-    ms.meanRuntime.set(xbar_n);
-    ms.sumSquaresRuntime.set(ms.sumSquaresRuntime.get() + (m.duration - xbar_n) * (m.duration - xbar_n1));
+    if (this.mode == Mode.SAMPLE) {
+      long n = ms.executionCount.incrementAndGet();
+      ms.totalRuntime.addAndGet(m.duration);
+      
+      double xbar_n1 = ms.meanRuntime.get();
+      
+      double xbar_n = xbar_n1 + (m.duration - xbar_n1) / n;
+      
+      ms.meanRuntime.set(xbar_n);
+      ms.sumSquaresRuntime.set(ms.sumSquaresRuntime.get() + (m.duration - xbar_n) * (m.duration - xbar_n1));
+    }
   }
 
   public void taskWaited(String m) {
