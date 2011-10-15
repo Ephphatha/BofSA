@@ -23,11 +23,7 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
@@ -86,7 +82,7 @@ public class InGameStateDP extends InGameStateST {
     this.dummyLogger = new Logger();
     this.dummyLogger.setLogMode(this.logMode);
 
-    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads, this.logMode);
+    this.scheduler.start(Scheduler.Mode.UNORDERED, numThreads, this.logMode);
 
     this.updateThread.start();
   }
@@ -134,10 +130,10 @@ public class InGameStateDP extends InGameStateST {
                                           (float) input.getMouseY() / (float) container.getHeight());
     
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
-      Vector2f towerPos = new Vector2f((float) Math.floor(relativeInput.x * this.map.getWidth()),
-                                       (float) Math.floor(relativeInput.y * this.map.getHeight()));
+      CopyablePoint towerPos = new CopyablePoint((int) Math.floor(relativeInput.x * this.map.getWidth()),
+                                                 (int) Math.floor(relativeInput.y * this.map.getHeight()));
       
-      Tower t = this.map.spawnTower(towerPos);
+      Tower t = this.map.spawnTower(towerPos, this.creepPositions, this.tileSize, this);
       
       if (t != null) {
         this.towers.add(t);
@@ -168,16 +164,15 @@ public class InGameStateDP extends InGameStateST {
     this.dummyLogger.taskRun("Spawn");
     
     for (final Tower t : this.towers) {
-      this.tasks.offer(
-        this.pool.submit(
-          new Runnable() {
-            public void run() {
-              t.update(delta, creeps);
+      this.scheduler.call(
+          new Callable<Boolean>() {
+            public Boolean call() {
+              t.update(delta);
               dummyLogger.taskRun("Attack");
               dummyLogger.taskRun("Render");
+              return true;
             }
           }
-        )
       );
     }
     
@@ -185,10 +180,9 @@ public class InGameStateDP extends InGameStateST {
     
     final CreepManager man = this;
     for (final Creep c : this.creeps) {
-      this.tasks.offer(
-        this.pool.submit(
-          new Runnable() {
-            public void run() {
+      this.scheduler.call(
+          new Callable<Boolean>() {
+            public Boolean call() {
               c.update(man, delta);
               dummyLogger.taskRun("Move");
               dummyLogger.taskRun("Velocity");
@@ -196,9 +190,9 @@ public class InGameStateDP extends InGameStateST {
               dummyLogger.taskRun("Waypoint");
               dummyLogger.taskRun("Health");
               dummyLogger.taskRun("Render");
+              return true;
             }
           }
-        )
       );
     }
 
@@ -213,13 +207,7 @@ public class InGameStateDP extends InGameStateST {
   }
 
   private void waitForPendingTasks() {
-    while (!this.tasks.isEmpty() && !Thread.currentThread().isInterrupted()) {
-      Future<?> t = this.tasks.poll();
-      if (t.isDone()) {
-        continue;
-      } else {
-        this.tasks.offer(t);
-      }
+    while (!this.scheduler.isBusy() && !Thread.currentThread().isInterrupted()) {
     }
   }
 

@@ -129,7 +129,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
     CreepFactoryBehaviour.loadResources();
-    this.towerFactory.loadResources();
+    TowerFactoryBehaviour.loadResources();
     
     this.logger.setLogMode(logMode);
     
@@ -160,7 +160,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
               dummyStream));
     }
     
-    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads, this.logMode);
+    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads - 1, this.logMode);
 
     this.logger.startLogging("TASKBASED", this.scheduler.numThreads());
 
@@ -176,13 +176,13 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
               new Signal<CopyableBoolean>(new CopyableBoolean(true)),
               dummy,
               this.tileSize,
-              this.towerFactory.getSprite(),
+              TowerFactoryBehaviour.getSprite(),
               dummyStream));
     }
     
     CopyablePoint dummy2 = new CopyablePoint(0,0);
     for (int i = 0; i < this.numTowers; ++i) {
-      this.towerFactory.createTower(dummy2);
+      TowerFactoryBehaviour.createTower(dummy2, this.creepFactory.getSignal(), this.broadcastStream, tileSize, this);
     }
 
     this.tileSize.write(

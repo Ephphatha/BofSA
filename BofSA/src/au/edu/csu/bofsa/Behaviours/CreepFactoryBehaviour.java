@@ -128,7 +128,6 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
   }
   
   public static void spawnCreep(
-      Sprite s,
       final CopyableVector2f pos,
       final Queue<CheckPoint> cps,
       EventSink controller,
@@ -232,7 +231,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         health,
         new Signal<CopyableFloat>(health.read()),
         tileSize,
-        s,
+        CreepFactoryBehaviour.getSprite(),
         a,
         creepStream,
         drawWatcher);
@@ -279,7 +278,6 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         CreepSpawnEvent.SpawnEventParameters params = (SpawnEventParameters) e.value;
         
         CreepFactoryBehaviour.spawnCreep(
-            CreepFactoryBehaviour.getSprite(),
             new CopyableVector2f(params.position),
             params.waypoints,
             this,

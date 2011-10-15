@@ -31,15 +31,14 @@ import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
-import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
 import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
+import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
-import au.edu.csu.bofsa.Signals.InputSignal;
 import au.edu.csu.bofsa.Signals.Signal;
 
 /**
@@ -119,22 +118,34 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
 
     this.updateThread = new Thread(this);
     
-    CopyableVector2f dummy = new CopyableVector2f(1,1);
+    {
+    CopyablePoint dummy = new CopyablePoint(0,0);
+    Tower t = null;
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
-      this.towerBallast.add(Tower.createTower(dummy));
+      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, null);
+      this.towerBallast.add(t);
+    }
     }
 
     Signal<CopyableList<Pipe<CopyableVector2f>>> tempSignal = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
     
+    {
+    CopyableVector2f dummy = new CopyableVector2f(1,1);
     Creep c = null;
     for (int i = 0; i < 1024; ++i) {
       c = new Creep();
-      CreepFactoryBehaviour.spawnCreep(CreepFactoryBehaviour.getSprite(), dummy, null, c, c, this.tileSize, this, tempSignal);
+      CreepFactoryBehaviour.spawnCreep(dummy, null, c, c, this.tileSize, this, tempSignal);
       this.creepBallast.add(c);
     }
-    
+    }
+
+    {
+    CopyablePoint dummy = new CopyablePoint(0,0);
+    Tower t = null;
     for (int i = 0; i < this.numTowers; ++i) {
-      this.towers.add(Tower.createTower(dummy));
+      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, null);
+      this.towers.add(t);
+    }
     }
 
     this.logger.setLogMode(this.logMode);
@@ -174,7 +185,7 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
       throws SlickException {
     //long start = System.nanoTime();
 
-    Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
+    this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
 
     for (int i = 0; i < this.towerBallast.size() - this.towers.size(); ++i) {
       this.towerBallast.get(i).draw(g);
@@ -206,10 +217,10 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
                                           (float) input.getMouseY() / (float) container.getHeight());
     
     if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
-      Vector2f towerPos = new Vector2f((float) Math.floor(relativeInput.x * this.map.getWidth()),
-                                       (float) Math.floor(relativeInput.y * this.map.getHeight()));
+      CopyablePoint towerPos = new CopyablePoint((int) Math.floor(relativeInput.x * this.map.getWidth()),
+                                                 (int) Math.floor(relativeInput.y * this.map.getHeight()));
       
-      Tower t = this.map.spawnTower(towerPos);
+      Tower t = this.map.spawnTower(towerPos, this.creepPositions, this.tileSize, this);
       
       if (t != null) {
         this.towers.add(t);
@@ -235,7 +246,7 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     this.map.update(this, delta / 1000.0f);
     
     for (Tower t : this.towers) {
-      t.update(delta / 1000.0f, this.creeps);
+      t.update(delta / 1000.0f);
     }
     
     for (Creep c : this.creeps) {
@@ -268,7 +279,6 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     Creep c = new Creep();
     
     CreepFactoryBehaviour.spawnCreep(
-        CreepFactoryBehaviour.getSprite(),
         position,
         checkpoints,
         c,

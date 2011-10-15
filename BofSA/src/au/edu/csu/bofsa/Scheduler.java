@@ -45,10 +45,10 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   protected List<Thread> threads;
   protected Queue<WorkerThread> idleThreads;
   
-  protected Queue<Behaviour<?>> tasks;
-  protected List<Behaviour<?>> waitingTasks;
+  protected Queue<Callable<Boolean>> tasks;
+  protected List<Callable<Boolean>> waitingTasks;
   protected Lock waitingLock;
-  protected Queue<Behaviour<?>> unsortedTasks;
+  protected Queue<Callable<Boolean>> unsortedTasks;
   
   protected Logger logger;
   
@@ -71,20 +71,20 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.threads = new LinkedList<Thread>();
     this.idleThreads = new ConcurrentLinkedQueue<WorkerThread>();
     
-    this.tasks = new ConcurrentLinkedQueue<Behaviour<?>>();
-    this.waitingTasks = new LinkedList<Behaviour<?>>();
+    this.tasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
+    this.waitingTasks = new LinkedList<Callable<Boolean>>();
     this.waitingLock = new ReentrantLock();
-    this.unsortedTasks = new ConcurrentLinkedQueue<Behaviour<?>>();
+    this.unsortedTasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
     
     this.state = State.STOPPED;
     
     this.mode = Mode.ORDERED_PRECOMPUTE;
   }
   
-  public void start(Mode scheduleMode, int maxThreads, Logger.Mode logMode) {
+  public void start(Mode scheduleMode, int workers, Logger.Mode logMode) {
     this.mode = scheduleMode;
     
-    int numWorkers = Math.max(maxThreads - 1, 1);
+    int numWorkers = Math.max(workers, 1);
     
     for (int i = 0; i < numWorkers; ++i) {
       WorkerThread w = new WorkerThread(this);
@@ -154,7 +154,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       return;
     }
     
-    Behaviour<?> t = this.getNextTask();
+    Callable<Boolean> t = this.getNextTask();
 
     while (t != null && !this.idleThreads.isEmpty()) {
       WorkerThread w = this.idleThreads.poll();
@@ -179,15 +179,15 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     return this.threads.size() - this.idleThreads.size();
   }
   
-  protected Behaviour<?> getNextTask() {
-    Behaviour<?> t = this.tasks.poll();
+  protected Callable<Boolean> getNextTask() {
+    Callable<Boolean> t = this.tasks.poll();
     
     switch (this.mode) {
     case UNORDERED:
       break;
       
     case ORDERED_RETRY:
-      while (t != null && !t.isReady()) {
+      while (t != null && t instanceof Behaviour<?> && !((Behaviour<?>) t).isReady()) {
         this.tasks.add(t);
         
         if (this.logger != null) {
@@ -202,7 +202,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       if (this.waitingLock.tryLock()) {
         try {
           while (!this.unsortedTasks.isEmpty()) {
-            Behaviour<?> b = this.unsortedTasks.poll();
+            Callable<Boolean> b = this.unsortedTasks.poll();
             
             if (b != null) {
               this.waitingTasks.add(b);
@@ -210,10 +210,15 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
           }
           
           for (int i = this.waitingTasks.size() - 1; i >= 0; --i) {
-            if (this.waitingTasks.get(i).isReady()) {
-              Behaviour<?> b = this.waitingTasks.remove(i);
-              
-              this.tasks.add(b);
+            Callable<Boolean> c = this.waitingTasks.get(i);
+            
+            if (c instanceof Behaviour<?>) {
+              if (((Behaviour<?>) c).isReady()) {
+                 this.waitingTasks.remove(i);
+                 this.tasks.add(c);
+              }
+            } else {
+              this.tasks.add(c);
             }
           }
         } finally {
@@ -231,25 +236,25 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   
   public void call(Callable<Boolean> c) {
     if (this.state == State.RUNNING) {
-      if (c instanceof Behaviour<?>) {
-        Behaviour<?> b = (Behaviour<?>) c;
+      switch (this.mode) {
+      case UNORDERED:
+      case ORDERED_RETRY:
+        this.tasks.add(c);
+        break;
         
-        switch (this.mode) {
-        case UNORDERED:
-        case ORDERED_RETRY:
-          this.tasks.add(b);
-          break;
-          
-        case ORDERED_PRECOMPUTE:
-          if (b.isReady()) {
-            this.tasks.add(b);
+      case ORDERED_PRECOMPUTE:
+        if (c instanceof Behaviour<?>) {
+          if (((Behaviour<?>) c).isReady()) {
+            this.tasks.add(c);
           } else {
             if (this.logger != null) {
-              this.logger.taskWaited(b.getClass().getSimpleName());
+              this.logger.taskWaited(((Behaviour<?>) c).getName());
             }
-            
-            this.unsortedTasks.add(b);
+          
+            this.unsortedTasks.add(c);
           }
+        } else {
+          this.tasks.add(c);
         }
       }
     }
@@ -272,5 +277,21 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
 
   public void setLogger(Logger logger) {
     this.logger = logger;
+  }
+
+  public boolean isBusy() {
+    if (this.state == State.STOPPED) {
+      return false;
+    }
+    
+    if (this.tasks.isEmpty()) {
+      if (this.idleThreads.isEmpty()) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    
+    return true;
   }
 }

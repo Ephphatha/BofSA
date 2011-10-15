@@ -38,6 +38,10 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.gui.GUIContext;
 import org.newdawn.slick.tiled.TiledMap;
 
+import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Signals.InputSignal;
+
 /**
  * @author ephphatha
  *
@@ -112,12 +116,10 @@ public class GameLevelST {
       this.attributes.remove(Attribute.BUILDABLE);
     }
     
-    public boolean placeTower(Sprite t) {
+    public boolean placeTower() {
       if (this.attributes.contains(Attribute.BUILDABLE)) {
-        if (this.tower == null) {
-          this.tower = t;
-          return true;
-        }
+        this.setUnbuildable();
+        return true;
       }
       return false;
     }
@@ -273,8 +275,15 @@ public class GameLevelST {
     }
   }
   
-  public Tower spawnTower(Vector2f pos) {
-    Tower t =  Tower.createTower(pos);
+  public Tower spawnTower(
+      CopyablePoint pos,
+      InputSignal<CopyableList<Pipe<CopyableVector2f>>> creeps,
+      InputSignal<CopyableDimension> tileSize,
+      EventSink drawWatcher) {
+    Tower t = new Tower(pos);
+    
+    TowerFactoryBehaviour.createTower(pos, creeps, t, tileSize, drawWatcher);
+    
     if (this.spawnTower(t)) {
       return t;
     } else {
@@ -285,11 +294,14 @@ public class GameLevelST {
   private boolean spawnTower(Tower t) {
     if (t == null) {
       return false;
-    } else if (t.position.x >= 0 && t.position.x < this.size.width &&
-        t.position.y >= 0 && t.position.y < this.size.height) {
-      return this.board[(int) Math.floor(t.position.x)][(int) Math.floor(t.position.y)].placeTower(t.sprite);
     } else {
-      return false;
+      CopyablePoint p = t.getPosition();
+      if (p.x >= 0 && p.x < this.size.width &&
+          p.y >= 0 && p.y < this.size.height) {
+        return this.board[p.x][p.y].placeTower();
+      } else {
+        return false;
+      }
     }
   }
 }

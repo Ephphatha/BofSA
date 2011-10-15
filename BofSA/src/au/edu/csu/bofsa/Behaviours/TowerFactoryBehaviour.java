@@ -49,8 +49,8 @@ import au.edu.csu.bofsa.Signals.Signal;
  */
 public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>> {
 
-  protected Image errorImage,
-                  spriteSheet;
+  protected static Image errorImage,
+                         spriteSheet;
   
   protected InputSignal<CopyableDimension> tileSize;
   protected InputSignal<CopyableList<Pipe<CopyableVector2f>>> creeps;
@@ -100,14 +100,14 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
     this.behaviourWatcher = behaviourWatcher;
   }
 
-  public void loadResources() {
-    this.getErrorImage();
-    this.getSpriteSheet();
+  public static void loadResources() {
+    TowerFactoryBehaviour.getErrorImage();
+    TowerFactoryBehaviour.getSpriteSheet();
   }
 
 
-  protected Image getErrorImage() {
-    if (this.errorImage == null) {
+  protected static Image getErrorImage() {
+    if (TowerFactoryBehaviour.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
       
       for (int x = 0; x < buffer.getWidth(); ++x) {
@@ -117,66 +117,72 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
         }
       }
       
-      this.errorImage = new Image(buffer);
+      TowerFactoryBehaviour.errorImage = new Image(buffer);
     }
     
-    return this.errorImage;
+    return TowerFactoryBehaviour.errorImage;
   }
   
   
-  protected Image getSpriteSheet() {
-    if (this.spriteSheet == null) {
+  protected static Image getSpriteSheet() {
+    if (TowerFactoryBehaviour.spriteSheet == null) {
       try {
-        this.spriteSheet = new Image(this.getClass().getResource("/assets/tower.png").getRef());
+        TowerFactoryBehaviour.spriteSheet = new Image(TowerFactoryBehaviour.class.getResource("/assets/tower.png").getRef());
       } catch (NullPointerException n) {
         try {
-          this.spriteSheet = new Image("/assets/tower.png");
+          TowerFactoryBehaviour.spriteSheet = new Image("/assets/tower.png");
         } catch (SlickException e) {
-          this.spriteSheet = this.errorImage;
+          TowerFactoryBehaviour.spriteSheet = TowerFactoryBehaviour.errorImage;
         }
       } catch (SlickException e) {
-        this.spriteSheet = this.errorImage;
+        TowerFactoryBehaviour.spriteSheet = TowerFactoryBehaviour.errorImage;
       }
     }
     
-    return this.spriteSheet;
+    return TowerFactoryBehaviour.spriteSheet;
   }
-  
-  public Sprite getSprite() {
+
+  public static Sprite getSprite() {
     Sprite s;
+    Image i = TowerFactoryBehaviour.getSpriteSheet();
     try {
-      s = new Sprite(this.spriteSheet, this.spriteSheet.getWidth() / 4, this.spriteSheet.getHeight() / 4);
+      s = new Sprite(i, i.getWidth() / 4, i.getHeight() / 4);
     } catch (RuntimeException e) {
-      s = new Sprite(this.errorImage);
+      s = new Sprite(TowerFactoryBehaviour.errorImage);
     }
 
     Sprite.SequencePoint[] a = new Sprite.SequencePoint[4];
 
-    for (int i = 0; i < 4; ++i) {
-      a[i] = new Sprite.SequencePoint(i, 0.25f);
+    for (int j = 0; j < 4; ++j) {
+      a[j] = new Sprite.SequencePoint(j, 0.25f);
     }
     s.setFrameSequence(a);
     
     return s;
   }
 
-  public void createTower(final CopyablePoint value) {
-    Sprite s = this.getSprite();
+  public static void createTower(
+      final CopyablePoint value,
+      InputSignal<CopyableList<Pipe<CopyableVector2f>>> creeps,
+      EventSink controller,
+      InputSignal<CopyableDimension> tileSize,
+      EventSink drawWatcher) {
+    Sprite s = TowerFactoryBehaviour.getSprite();
     
     long birthTime = System.nanoTime();
     
     Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(new CopyableVector2f(value.x, value.y));
     
-    AttackBehaviour ab = new AttackBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), this.creeps, position,
+    AttackBehaviour ab = new AttackBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), creeps, position,
         new Signal<CopyableFloat>(new CopyableFloat(2.0f)),
         new Signal<CopyableFloat>(new CopyableFloat(8.0f)),
         new Signal<CopyableFloat>(new CopyableFloat(4.0f)));
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(ab, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    controller.handleEvent(new GenericEvent(ab, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
     
-    RenderBehaviour rb = new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, this.tileSize, s, this.drawWatcher);
+    RenderBehaviour rb = new RenderBehaviour(new Signal<CopyableBoolean>(new CopyableBoolean(true)), position, tileSize, s, drawWatcher);
 
-    this.behaviourWatcher.handleEvent(new GenericEvent(rb, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
+    controller.handleEvent(new GenericEvent(rb, GenericEvent.Message.NEW_BEHAVIOUR, Event.Type.TARGETTED, birthTime));
   }
   
   @Override
@@ -213,7 +219,7 @@ public class TowerFactoryBehaviour extends Behaviour<CopyableList<CopyablePoint>
         } else if (e instanceof TowerSpawnEvent) {
           CopyableList<CopyablePoint> c = this.signal.read().copy();
           if (c.contains(e.value)) {
-            this.createTower((CopyablePoint) e.value);
+            TowerFactoryBehaviour.createTower((CopyablePoint) e.value, this.creeps, this.behaviourWatcher, this.tileSize, this.drawWatcher);
             c.remove(e.value);
             this.signal.write(c);
           }
