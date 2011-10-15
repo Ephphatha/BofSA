@@ -126,9 +126,15 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     return s;
   }
   
-  public void spawnCreep(final CopyableVector2f pos, final Queue<CheckPoint> cps) {
-    Sprite s = this.getSprite();
-
+  public static void spawnCreep(
+      Sprite s,
+      final CopyableVector2f pos,
+      final Queue<CheckPoint> cps,
+      EventSink controller,
+      EventSink behaviourWatcher,
+      InputSignal<CopyableDimension> tileSize,
+      EventSink drawWatcher,
+      Signal<CopyableList<Pipe<CopyableVector2f>>> signal) {
     Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 
     for (int i = 0; i < 4; ++i) {
@@ -142,16 +148,16 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     
     Stream creepStream = new Stream();
     
-    creepStream.addSink(this);
+    creepStream.addSink(controller);
     
     Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(64.0f));
     
     HealthBehaviour h = new HealthBehaviour(
         health,
         creepStream,
-        this);
+        controller);
     
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             h,
             GenericEvent.Message.NEW_BEHAVIOUR,
@@ -167,7 +173,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         velocity,
         creepStream);
     
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             m,
             GenericEvent.Message.NEW_BEHAVIOUR,
@@ -181,7 +187,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         cps,
         creepStream);
 
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             w,
             GenericEvent.Message.NEW_BEHAVIOUR,
@@ -197,7 +203,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         speed,
         creepStream);
 
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             v,
             GenericEvent.Message.NEW_BEHAVIOUR,
@@ -211,7 +217,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         cp,
         creepStream);
 
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             c,
             GenericEvent.Message.NEW_BEHAVIOUR,
@@ -224,24 +230,24 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         velocity,
         health,
         new Signal<CopyableFloat>(health.read()),
-        this.tileSize,
+        tileSize,
         s,
         a,
         creepStream,
-        this.drawWatcher);
+        drawWatcher);
 
-    this.behaviourWatcher.handleEvent(
+    behaviourWatcher.handleEvent(
         new GenericEvent(
             arb,
             GenericEvent.Message.NEW_BEHAVIOUR,
             Event.Type.TARGETTED,
             birthTime));
     
-    CopyableList<Pipe<CopyableVector2f>> temp = this.signal.read().copy();
+    CopyableList<Pipe<CopyableVector2f>> temp = signal.read().copy();
     
     temp.add(new Pipe<CopyableVector2f>(position, creepStream));
     
-    this.signal.write(temp);
+    signal.write(temp);
   }
 
   
@@ -271,7 +277,15 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
       } else if (e instanceof CreepSpawnEvent) {
         CreepSpawnEvent.SpawnEventParameters params = (SpawnEventParameters) e.value;
         
-        this.spawnCreep(new CopyableVector2f(params.position), params.waypoints);
+        CreepFactoryBehaviour.spawnCreep(
+            this.getSprite(),
+            new CopyableVector2f(params.position),
+            params.waypoints,
+            this,
+            this.behaviourWatcher,
+            this.tileSize,
+            this.drawWatcher,
+            this.signal);
       }
     }
     return true;

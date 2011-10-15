@@ -42,6 +42,9 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
+
 /**
  * @author ephphatha
  *
@@ -75,6 +78,8 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
 
   private Logger dummyLogger;
 
+  private Signal<CopyableDimension> tileSize;
+
   @SuppressWarnings("unused")
   private InGameStateDP() {
     this(0, Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
@@ -100,6 +105,8 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     this.tasks = new LinkedList<Future<?>>();
     
     this.logger = new Logger();
+    
+    this.tileSize = new Signal<CopyableDimension>(new CopyableDimension(1,1));
   }
 
   @Override
@@ -168,7 +175,7 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
     }
     
     for (int i = 0; i < 1024; ++i) {
-      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
+      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, this.tileSize));
     }
     
     for (int i = 0; i < this.numTowers; ++i) {
@@ -241,21 +248,21 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
       throws SlickException {
     //long start = System.nanoTime();
 
-    Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
+    this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
 
     for (int i = 0; i < this.towerBallast.size() - this.towers.size(); ++i) {
-      this.towerBallast.get(i).sprite.draw(g, tile);
+      this.towerBallast.get(i).draw(g);
     }
     
     for (int i = 0; i < this.creepBallast.size() - this.creeps.size(); ++i) {
-      this.creepBallast.get(i).draw(g, tile);
+      this.creepBallast.get(i).draw(g);
     }
     
     if (this.map != null) {
       this.map.render(container, g);
       
       for (Creep c : this.creeps) {
-        c.draw(g, tile);
+        c.draw(g);
       }
     }
     
@@ -379,28 +386,19 @@ public class InGameStateDP implements GameState, CreepManager, Runnable {
   }
 
   @Override
-  public void checkpointReached(Creep c) {
-    c.getNextCheckpoint();
-  }
-
-  @Override
-  public void goalReached(Creep c) {
-    this.deadCreeps.offer(c);
-  }
-
-  @Override
   public void onSpawn(Creep c) {
     this.newCreeps.offer(c);
   }
 
   @Override
-  public void spawnCreep(Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal) {
+  public void spawnCreep(
+      Vector2f position,
+      Queue<CheckPoint> checkpoints) {
     if (this.creepFactory == null) {
       this.creepFactory = new CreepFactory();
     }
     
-    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, goal));
+    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, this.tileSize));
   }
 
   @Override

@@ -23,294 +23,147 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
-import org.newdawn.slick.ShapeFill;
 import org.newdawn.slick.geom.Rectangle;
-import org.newdawn.slick.geom.Shape;
 import org.newdawn.slick.geom.Vector2f;
+
+import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
+import au.edu.csu.bofsa.Behaviours.CollisionBehaviour;
+import au.edu.csu.bofsa.Behaviours.HealthBehaviour;
+import au.edu.csu.bofsa.Behaviours.MoveBehaviour;
+import au.edu.csu.bofsa.Behaviours.VelocityBehaviour;
+import au.edu.csu.bofsa.Behaviours.WaypointBehaviour;
+import au.edu.csu.bofsa.Events.DamageEvent;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Events.Stream;
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
  *
  */
-public class Creep {
+public class Creep implements EventSink {
 
-  protected static SolidFill redFill = new SolidFill(Color.red);
-  protected static SolidFill greenFill = new SolidFill(Color.green);
+  private HealthBehaviour h;
+  private MoveBehaviour m;
+  private WaypointBehaviour w;
+  private VelocityBehaviour v;
+  private CollisionBehaviour c;
+  private ActorRenderBehaviour arb;
+  private boolean isDead;
+  
+  Creep(Sprite sprite, final Sprite.SequencePoint[][] frames, final Vector2f pos, final Queue<CheckPoint> checkpoints, final InputSignal<CopyableDimension> tileSize) {
+    
+    Stream creepStream = new Stream();
+    
+    creepStream.addSink(this);
+    
+    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(64.0f));
+    
+    this.h = new HealthBehaviour(
+        health,
+        creepStream,
+        this);
+    
+    Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(new CopyableVector2f(pos));
+    
+    Signal<CopyableVector2f> velocity = new Signal<CopyableVector2f>(new CopyableVector2f(0, 0));
+    
+    this.m = new MoveBehaviour(
+        position,
+        velocity,
+        creepStream);
+    
+    Signal<CheckPoint> cp = new Signal<CheckPoint>(checkpoints.peek());
+    
+    this.w = new WaypointBehaviour(
+        cp,
+        checkpoints,
+        creepStream);
 
-  public static class SolidFill implements ShapeFill {
-    private Color colour;
+    Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
+    
+    this.v = new VelocityBehaviour(
+        velocity,
+        position,
+        cp,
+        speed,
+        creepStream);
 
-    public SolidFill(Color c) {
-      this.colour = c;
-    }
+    this.c = new CollisionBehaviour(
+        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+        position,
+        new Signal<CopyableFloat>(new CopyableFloat(0.25f)),
+        cp,
+        creepStream);
 
-    @Override
-    public Color colorAt(Shape shape, float x, float y) {
-      return this.colour;
-    }
+    this.arb = new ActorRenderBehaviour(
+        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+        position,
+        velocity,
+        health,
+        new Signal<CopyableFloat>(health.read()),
+        tileSize,
+        sprite,
+        frames,
+        creepStream,
+        this);
 
-    @Override
-    public Vector2f getOffsetAt(Shape shape, float x, float y) {
-      return new Vector2f(0, 0);
-    }
-
-    public void setColor(Color colour) {
-      this.colour = colour;
-    }
+    this.isDead = false;
   }
   
-  volatile protected Vector2f position;
-  
-  protected Vector2f goal,
-                     checkpoint,
-                     velocity;
-  
-  protected Queue<CheckPoint> checkpoints;
-  protected Queue<Float> pendingDamage;
-  
-  volatile protected Sprite sprite;
-  protected Sprite.SequencePoint[][] sequences;
-  
-  protected Direction currentDir;
-
-  public static enum Direction {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST
-  }
-  
-  protected Attributes attributes;
-  
-  public static class Attributes {
-    public float hp,
-                 maxHp,
-                 damage,
-                 speed;
-
-    Attributes() {
-      this(0.0f, 0.0f, 1.0f);
-    }
-    
-    Attributes(float hp, float damage, float speed) {
-      this.setHealth(hp);
-      
-      this.setDamage(damage);
-      
-      this.setMaxSpeed(speed);
-    }
-
-    public void setMaxSpeed(float speed) {
-      this.speed = speed;
-    }
-
-    public void setDamage(float damage) {
-      this.damage = damage;
-    }
-
-    public void setHealth(float hp) {
-      this.hp = hp;
-      this.maxHp = hp;
-    }
-  }
-  
-  Creep(Sprite sprite, final Sprite.SequencePoint[] frames, final Vector2f position, final Queue<CheckPoint> checkpoints, final Vector2f goal, final Attributes attributes) {
-    this.sprite = sprite;
-
-    this.sequences = new Sprite.SequencePoint[4][];
-    Sprite.SequencePoint[] southSequence = new Sprite.SequencePoint[4];
-
-    for (int i = 0; i < 4; ++i) {
-      southSequence[i] = frames[i];
-    }
-    
-    this.sequences[Direction.SOUTH.ordinal()] = southSequence;
-    
-    Sprite.SequencePoint[] northSequence = new Sprite.SequencePoint[4];
-
-    for (int i = 0; i < 4; ++i) {
-      northSequence[i] = frames[i + 4];
-    }
-
-    this.sequences[Direction.NORTH.ordinal()] = northSequence;
-    
-    Sprite.SequencePoint[] westSequence = new Sprite.SequencePoint[4];
-
-    for (int i = 0; i < 4; ++i) {
-      westSequence[i] = frames[i + 8];
-    }
-
-    this.sequences[Direction.WEST.ordinal()] = westSequence;
-    
-    Sprite.SequencePoint[] eastSequence = new Sprite.SequencePoint[4];
-    
-    for (int i = 0; i < 4; ++i) {
-      eastSequence[i] = frames[i + 12];
-    }
-
-    this.sequences[Direction.EAST.ordinal()] = eastSequence;
-    
-    this.position = position.copy();
-    this.goal = goal;
-    try {
-      this.checkpoints = new LinkedList<CheckPoint>(checkpoints);
-    } catch (NullPointerException e) {
-      this.checkpoints = null;
-    }
-    
-    this.pendingDamage = new ConcurrentLinkedQueue<Float>();
-    
-    this.attributes = attributes;
-    
-    this.currentDir = Direction.NORTH;
-    
-    this.calculateVelocity();
-    
-    this.getNextCheckpoint();
-  }
-  
-  public void getNextCheckpoint() {
-    if (this.checkpoints != null) {
-      CheckPoint cp = this.checkpoints.poll();
-      
-      if (cp != null) {
-        this.checkpoint = cp.position;
-        return;
-      }
-    }
-    
-    this.checkpoint = null;
-  }
-
   public Rectangle getBounds() {
-    return new Rectangle(this.position.x - 0.25f, this.position.y - 0.25f, 0.5f, 0.5f);
+    CopyableVector2f position = this.m.getSignal().read();
+    return new Rectangle(position.x - 0.25f, position.y - 0.25f, 0.5f, 0.5f);
   }
   
   public Vector2f getPosition() {
-    return this.position;
-  }
-  
-  public void setPosition(final Vector2f position) {
-    this.position = position.copy();
+    return this.m.getSignal().read();
   }
   
   public Vector2f getVelocity() {
-    return this.velocity;
+    return this.v.getSignal().read();
   }
   
-  public void calculateVelocity() {
-    if (this.checkpoint != null) {
-      this.velocity = this.checkpoint.copy();
-    } else {
-      this.velocity = this.goal.copy();
-    }
-    
-    this.velocity.sub(this.position);
-    
-    if (this.velocity.length() > this.attributes.speed) {
-      this.velocity.normalise();
-      this.velocity.scale(this.attributes.speed);
-    }
-    
-    if (Math.abs(this.velocity.x) >= Math.abs(this.velocity.y)) {
-      // moving east or west
-      if (this.velocity.x >= 0) {
-        this.setAnimationSequence(Direction.EAST);
-      } else {
-        this.setAnimationSequence(Direction.WEST);
-      }
-    } else {
-      // moving north or south
-      if (this.velocity.y <= 0) {
-        this.setAnimationSequence(Direction.NORTH);
-      } else {
-        this.setAnimationSequence(Direction.SOUTH);
-      }
-    }
-  }
-
-  private void setAnimationSequence(Direction dir) {
-    if (this.currentDir != dir) {
-      this.currentDir = dir;
-      
-      synchronized (this.sprite) {
-        this.sprite.setFrameSequence(this.sequences[this.currentDir.ordinal()]);
-      }
-    }
-  }
-  
-  public void setCheckpoint(Vector2f checkpoint) {
-    this.checkpoint = checkpoint;
-  }
-
-  public void draw(Graphics g, Rectangle tile) {
-    Rectangle r = null;
-    synchronized (this.position) {
-      r = new Rectangle(
-          this.position.x * tile.getWidth() - tile.getWidth() / 4.0f,
-          this.position.y * tile.getHeight() - tile.getHeight() / 4.0f,
-          tile.getWidth() / 2.0f,
-          tile.getHeight() / 2.0f);
-    }
-    
-    synchronized (this.sprite) {
-      this.sprite.draw(g, r);
-    }
-    
-    r.setHeight(r.getHeight() * 0.1f);
-    
-    g.draw(r, Creep.redFill);
-    
-    float hpRatio = this.attributes.hp / this.attributes.maxHp;
-    
-    r.setWidth(r.getWidth() * hpRatio);
-    
-    g.draw(r, Creep.greenFill);
+  public void draw(Graphics g) {
+    this.arb.draw(g);
   }
   
   public void update(float dt) {
-    this.sprite.update(dt);
+    this.arb.call();
   }
   
   public void update(CreepManager cm, float dt) {
     this.update(dt);
     
-    while (!this.pendingDamage.isEmpty()) {
-      this.attributes.hp -= this.pendingDamage.poll();
-      
-      if (this.attributes.hp <= 0.0f) {
-//      cm.onDeath(this);
-        this.attributes.hp = 0;
-//      return;
-      }
-    }
+    this.h.call();
     
-    this.calculateVelocity();
+    this.v.call();
 
-    synchronized (this.position) {
-      this.position.add(this.velocity.copy().scale(dt));
-    }
+    this.m.call();
     
-    if (this.checkpoint != null) {
-      if (this.position.distanceSquared(this.checkpoint) < Math.pow(0.25f, 2)) {
-        cm.checkpointReached(this);
-        return;
-      }
-    }
+    this.c.call();
     
-    if (this.position.distanceSquared(this.goal) < 0.5f * 0.5f) {
-      cm.goalReached(this);
-      return;
+    this.w.call();
+    
+    if (this.isDead) {
+      cm.onDeath(this);
     }
   }
 
   public void takeDamage(float damage) {
-    this.pendingDamage.offer(damage);
+    this.h.handleEvent(new DamageEvent(this, damage, Event.Type.TARGETTED, System.nanoTime()));
+  }
+
+  @Override
+  public void handleEvent(Event event) {
+    if (event.value == GenericEvent.Message.DEATH) {
+      this.isDead = true;
+    }
   }
 }

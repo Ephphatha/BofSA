@@ -36,6 +36,9 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
+import au.edu.csu.bofsa.Signals.InputSignal;
+import au.edu.csu.bofsa.Signals.Signal;
+
 /**
  * @author ephphatha
  *
@@ -99,12 +102,13 @@ public class InGameStateST implements GameState, CreepManager {
     }
     
     Vector2f dummy = new Vector2f(1,1);
+    InputSignal<CopyableDimension> tileSize = new Signal<CopyableDimension>(new CopyableDimension(1,1));
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
       this.towerBallast.add(Tower.createTower(dummy));
     }
     
     for (int i = 0; i < 1024; ++i) {
-      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, dummy));
+      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, tileSize));
     }
 
     for (int i = 0; i < this.numTowers; ++i) {
@@ -145,20 +149,18 @@ public class InGameStateST implements GameState, CreepManager {
     Rectangle tile = new Rectangle(0, 0, container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight());
 
     for (int i = 0; i < this.towerBallast.size() - this.towers.size(); ++i) {
-      this.towerBallast.get(i).sprite.draw(g, tile);
+      this.towerBallast.get(i).draw(g);
     }
     
     for (int i = 0; i < this.creepBallast.size() - this.creeps.size(); ++i) {
-      this.creepBallast.get(i).draw(g, tile);
+      this.creepBallast.get(i).draw(g);
     }
     
     if (this.map != null) {
       this.map.render(container, g);
       
       for (Creep c : this.creeps) {
-        Vector2f p = c.getPosition();
-        Rectangle r = new Rectangle(p.x * tile.getWidth(), p.y * tile.getHeight(), tile.getWidth(), tile.getHeight());
-        c.draw(g, r);
+        c.draw(g);
       }
     }
     
@@ -359,27 +361,18 @@ public class InGameStateST implements GameState, CreepManager {
   }
 
   @Override
-  public void checkpointReached(Creep c) {
-    c.getNextCheckpoint();
-  }
-
-  @Override
-  public void goalReached(Creep c) {
-    this.deadCreeps.add(c);
-  }
-
-  @Override
   public void onSpawn(Creep c) {
     this.newCreeps.add(c);
   }
 
   @Override
-  public void spawnCreep(Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal) {
+  public void spawnCreep(
+      Vector2f position,
+      Queue<CheckPoint> checkpoints) {
     if (this.creepFactory == null) {
       this.creepFactory = new CreepFactory();
     }
     
-    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, goal));
+    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, this.tileSize));
   }
 }

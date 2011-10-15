@@ -30,7 +30,7 @@ import org.newdawn.slick.ImageBuffer;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.geom.Vector2f;
 
-import au.edu.csu.bofsa.Creep.Attributes;
+import au.edu.csu.bofsa.Signals.InputSignal;
 
 /**
  * @author ephphatha
@@ -42,7 +42,7 @@ public class CreepFactory {
   
 
   public Creep spawnCreep(final Vector2f pos,
-      final Queue<CheckPoint> cps, final Vector2f goal) {
+      final Queue<CheckPoint> cps, final InputSignal<CopyableDimension> tileSize) {
     if (this.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
       
@@ -69,17 +69,15 @@ public class CreepFactory {
       s = new Sprite(this.errorImage);
     }
 
-    Attributes attributes = new Attributes();
-    attributes.setDamage(0.0f);
-    attributes.setHealth(64.0f);
-    attributes.setMaxSpeed(1.0f);
-    
-    Sprite.SequencePoint[] a = new Sprite.SequencePoint[16];
+    Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
 
-    for (int j = 0; j < 16; ++j) {
-      a[j] = new Sprite.SequencePoint(j, 0.25f);
+    for (int i = 0; i < 4; ++i) {
+      a[i] = new Sprite.SequencePoint[4];
+      for (int j = 0; j < 4; ++j) {
+        a[i][j] = new Sprite.SequencePoint((i * 4) + j, 0.25f);
+      }
     }
     
-    return new Creep(s, a, pos, cps, goal, attributes);
+    return new Creep(s, a, pos, cps, tileSize);
   }
 }

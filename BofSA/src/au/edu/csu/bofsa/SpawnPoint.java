@@ -68,6 +68,9 @@ public class SpawnPoint {
   public boolean setCheckPoints(Queue<CheckPoint> checkpoints) {
     if (this.checkpoints == null) {
       this.checkpoints = checkpoints;
+      if (this.goal != null) {
+        this.checkpoints.offer(new CheckPoint(this.checkpoints.size(), this.goal));
+      }
       return true;
     } else {
       return false;
@@ -77,6 +80,9 @@ public class SpawnPoint {
   public boolean setGoal(Vector2f goal) {
     if (this.goal == null) {
       this.goal = goal;
+      if (this.checkpoints != null) {
+        this.checkpoints.offer(new CheckPoint(this.checkpoints.size(), this.goal));
+      }
       return true;
     } else {
       return false;
@@ -105,7 +111,7 @@ public class SpawnPoint {
       case SPAWNING:
         while (this.elapsedTime - this.lastSpawnTime >= this.spawnInterval) {
           this.lastSpawnTime += this.spawnInterval;
-          cm.spawnCreep(this.position, this.checkpoints, this.goal);
+          cm.spawnCreep(this.position, this.checkpoints);
           
           if (this.lastSpawnTime > this.spawnDuration) {
             break;

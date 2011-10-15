@@ -37,10 +37,6 @@ public interface CreepManager {
   
   public void onDeath(Creep c);
   
-  public void checkpointReached(Creep c);
-  
-  public void goalReached(Creep c);
-
   public void spawnCreep(Vector2f position,
-      Queue<CheckPoint> checkpoints, Vector2f goal);
+      Queue<CheckPoint> checkpoints);
 }
