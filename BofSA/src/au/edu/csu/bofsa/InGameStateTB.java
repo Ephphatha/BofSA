@@ -131,7 +131,7 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
-    this.creepFactory.loadResources();
+    CreepFactoryBehaviour.loadResources();
     this.towerFactory.loadResources();
     
     this.logger.setLogMode(logMode);

@@ -23,8 +23,6 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.Queue;
-
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.geom.Vector2f;
@@ -39,9 +37,6 @@ import au.edu.csu.bofsa.Events.DamageEvent;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
-import au.edu.csu.bofsa.Events.Stream;
-import au.edu.csu.bofsa.Signals.InputSignal;
-import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
@@ -57,63 +52,7 @@ public class Creep implements EventSink {
   private ActorRenderBehaviour arb;
   private boolean isDead;
   
-  Creep(Sprite sprite, final Sprite.SequencePoint[][] frames, final Vector2f pos, final Queue<CheckPoint> checkpoints, final InputSignal<CopyableDimension> tileSize) {
-    
-    Stream creepStream = new Stream();
-    
-    creepStream.addSink(this);
-    
-    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(64.0f));
-    
-    this.h = new HealthBehaviour(
-        health,
-        creepStream,
-        this);
-    
-    Signal<CopyableVector2f> position = new Signal<CopyableVector2f>(new CopyableVector2f(pos));
-    
-    Signal<CopyableVector2f> velocity = new Signal<CopyableVector2f>(new CopyableVector2f(0, 0));
-    
-    this.m = new MoveBehaviour(
-        position,
-        velocity,
-        creepStream);
-    
-    Signal<CheckPoint> cp = new Signal<CheckPoint>(checkpoints.peek());
-    
-    this.w = new WaypointBehaviour(
-        cp,
-        checkpoints,
-        creepStream);
-
-    Signal<CopyableFloat> speed = new Signal<CopyableFloat>(new CopyableFloat(1.0f));
-    
-    this.v = new VelocityBehaviour(
-        velocity,
-        position,
-        cp,
-        speed,
-        creepStream);
-
-    this.c = new CollisionBehaviour(
-        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
-        position,
-        new Signal<CopyableFloat>(new CopyableFloat(0.25f)),
-        cp,
-        creepStream);
-
-    this.arb = new ActorRenderBehaviour(
-        new Signal<CopyableBoolean>(new CopyableBoolean(true)),
-        position,
-        velocity,
-        health,
-        new Signal<CopyableFloat>(health.read()),
-        tileSize,
-        sprite,
-        frames,
-        creepStream,
-        this);
-
+  Creep() {
     this.isDead = false;
   }
   
@@ -164,6 +103,21 @@ public class Creep implements EventSink {
   public void handleEvent(Event event) {
     if (event.value == GenericEvent.Message.DEATH) {
       this.isDead = true;
+    } else if (event.value == GenericEvent.Message.NEW_BEHAVIOUR) {
+      Object o = event.getSource();
+      if (o instanceof HealthBehaviour) {
+        this.h = (HealthBehaviour) o;
+      } else if (o instanceof VelocityBehaviour) {
+        this.v = (VelocityBehaviour) o;
+      } else if (o instanceof MoveBehaviour) {
+        this.m = (MoveBehaviour) o;
+      } else if (o instanceof CollisionBehaviour) {
+        this.c = (CollisionBehaviour) o;
+      } else if (o instanceof WaypointBehaviour) {
+        this.w = (WaypointBehaviour) o;
+      } else if (o instanceof ActorRenderBehaviour) {
+        this.arb = (ActorRenderBehaviour) o;
+      }
     }
   }
 }

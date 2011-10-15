@@ -52,8 +52,8 @@ import au.edu.csu.bofsa.Signals.Signal;
  */
 public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableVector2f>>> {
 
-  protected Image errorImage,
-                  spriteSheet;
+  protected static Image errorImage,
+                         spriteSheet;
   
   protected InputSignal<CopyableDimension> tileSize;
   
@@ -73,14 +73,14 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
   }
 
   
-  public void loadResources() {
-    this.getErrorImage();
-    this.getSpriteSheet();
+  public static void loadResources() {
+    CreepFactoryBehaviour.getErrorImage();
+    CreepFactoryBehaviour.getSpriteSheet();
   }
 
 
-  protected Image getErrorImage() {
-    if (this.errorImage == null) {
+  protected static Image getErrorImage() {
+    if (CreepFactoryBehaviour.errorImage == null) {
       ImageBuffer buffer = new ImageBuffer(16, 16);
       
       for (int x = 0; x < buffer.getWidth(); ++x) {
@@ -90,37 +90,38 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         }
       }
       
-      this.errorImage = new Image(buffer);
+      CreepFactoryBehaviour.errorImage = new Image(buffer);
     }
     
-    return this.errorImage;
+    return CreepFactoryBehaviour.errorImage;
   }
   
   
-  protected Image getSpriteSheet() {
-    if (this.spriteSheet == null) {
+  protected static Image getSpriteSheet() {
+    if (CreepFactoryBehaviour.spriteSheet == null) {
       try {
-        this.spriteSheet = new Image(this.getClass().getResource("/assets/creep.png").getRef());
+        CreepFactoryBehaviour.spriteSheet = new Image(CreepFactoryBehaviour.class.getResource("/assets/creep.png").getRef());
       } catch (NullPointerException n) {
         try {
-          this.spriteSheet = new Image("/assets/creep.png");
+          CreepFactoryBehaviour.spriteSheet = new Image("/assets/creep.png");
         } catch (SlickException e) {
-          this.spriteSheet = this.errorImage;
+          CreepFactoryBehaviour.spriteSheet = CreepFactoryBehaviour.getErrorImage();
         }
       } catch (SlickException e) {
-        this.spriteSheet = this.errorImage;
+        CreepFactoryBehaviour.spriteSheet = CreepFactoryBehaviour.getErrorImage();
       }
     }
     
-    return this.spriteSheet;
+    return CreepFactoryBehaviour.spriteSheet;
   }
 
   public Sprite getSprite() {
     Sprite s;
+    Image i = CreepFactoryBehaviour.getSpriteSheet();
     try {
-      s = new Sprite(this.spriteSheet, this.spriteSheet.getWidth() / 8, this.spriteSheet.getHeight() / 8);
+      s = new Sprite(i, i.getWidth() / 8, i.getHeight() / 8);
     } catch (RuntimeException e) {
-      s = new Sprite(this.errorImage);
+      s = new Sprite(CreepFactoryBehaviour.getErrorImage());
     }
 
     return s;
