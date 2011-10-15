@@ -111,7 +111,7 @@ public class SpawnPoint {
       case SPAWNING:
         while (this.elapsedTime - this.lastSpawnTime >= this.spawnInterval) {
           this.lastSpawnTime += this.spawnInterval;
-          cm.spawnCreep(this.position, this.checkpoints);
+          cm.spawnCreep(new CopyableVector2f(this.position), this.checkpoints);
           
           if (this.lastSpawnTime > this.spawnDuration) {
             break;

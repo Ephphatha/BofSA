@@ -43,7 +43,6 @@ import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
 import au.edu.csu.bofsa.Events.Stream;
-import au.edu.csu.bofsa.Logger.Mode;
 import au.edu.csu.bofsa.Signals.Signal;
 
 /**
@@ -74,8 +73,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   private List<Drawable> creepBallast;
 
   private int towerCount;
-
-  private Thread daemonThread;
 
   private Logger.Mode logMode;
 
@@ -157,53 +154,11 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
               health,
               health,
               this.tileSize,
-              this.creepFactory.getSprite(),
+              CreepFactoryBehaviour.getSprite(),
               a,
               dummyStream,
               dummyStream));
     }
-    
-    this.daemonThread = new Thread(new Runnable(){
-      public void run() {
-        long sampleInterval = 5000;
-        
-        long last = System.nanoTime();
-        Logger logger = new Logger();
-        logger.setLogMode(Mode.DETAILED);
-        logger.startLogging("THREADCOUNT");
-
-        while (System.nanoTime() - last < 10E9) {
-          try {
-            Thread.sleep(50);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            break;
-          }
-        }
-        
-        while (!Thread.currentThread().isInterrupted()) {
-          
-          long current = System.nanoTime();
-
-          if (current - last >= sampleInterval) {
-            logger.taskRun(new Logger.Task("ActiveThreadCount", current, Long.valueOf(scheduler.getActiveCount())));
-            last = current;
-          } else {
-            try {
-              Thread.sleep(0, (int) (sampleInterval - (current - last)));
-            } catch (InterruptedException e) {
-              break;
-            }
-          }
-        }
-        
-        logger.stopLogging();
-      }
-    });
-    
-    this.daemonThread.setDaemon(true);
-    
-    //this.daemonThread.start();
     
     this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads, this.logMode);
 

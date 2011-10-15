@@ -115,7 +115,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
     return CreepFactoryBehaviour.spriteSheet;
   }
 
-  public Sprite getSprite() {
+  public static Sprite getSprite() {
     Sprite s;
     Image i = CreepFactoryBehaviour.getSpriteSheet();
     try {
@@ -279,7 +279,7 @@ public class CreepFactoryBehaviour extends Behaviour<CopyableList<Pipe<CopyableV
         CreepSpawnEvent.SpawnEventParameters params = (SpawnEventParameters) e.value;
         
         CreepFactoryBehaviour.spawnCreep(
-            this.getSprite(),
+            CreepFactoryBehaviour.getSprite(),
             new CopyableVector2f(params.position),
             params.waypoints,
             this,

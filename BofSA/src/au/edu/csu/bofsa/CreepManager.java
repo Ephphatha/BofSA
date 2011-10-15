@@ -25,8 +25,6 @@ package au.edu.csu.bofsa;
 
 import java.util.Queue;
 
-import org.newdawn.slick.geom.Vector2f;
-
 /**
  * @author ephphatha
  *
@@ -37,6 +35,7 @@ public interface CreepManager {
   
   public void onDeath(Creep c);
   
-  public void spawnCreep(Vector2f position,
+  public void spawnCreep(
+      CopyableVector2f position,
       Queue<CheckPoint> checkpoints);
 }

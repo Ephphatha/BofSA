@@ -36,6 +36,9 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
+import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
+import au.edu.csu.bofsa.Events.Event;
+import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Signals.InputSignal;
 import au.edu.csu.bofsa.Signals.Signal;
 
@@ -43,26 +46,32 @@ import au.edu.csu.bofsa.Signals.Signal;
  * @author ephphatha
  *
  */
-public class InGameStateST implements GameState, CreepManager {
+public class InGameStateST implements CreepManager, EventSink, GameState, Runnable {
   private int stateID;
   
   protected GameLevelST map;
   
-  private List<Tower> towers;
-  private List<Tower> towerBallast;
-  private List<Creep> creeps;
-  private List<Creep> creepBallast;
-  private Queue<Creep> deadCreeps;
-  private Queue<Creep> newCreeps;
+  protected List<Tower> towers;
   
-  private CreepFactory creepFactory;
+  protected Queue<Creep> newCreeps;
+  protected List<Creep> creeps;
+  protected Queue<Creep> deadCreeps;
   
-  private Logger logger;
+  protected List<Tower> towerBallast;
+  protected List<Creep> creepBallast;
+  
+  protected Logger logger;
 
-  private Logger.Mode logMode;
+  protected Logger.Mode logMode;
 
-  private int numTowers;
+  protected int numTowers;
 
+  protected Signal<CopyableDimension> tileSize;
+
+  protected Signal<CopyableList<Pipe<CopyableVector2f>>> creepPositions;
+
+  protected Thread updateThread;
+  
   @SuppressWarnings("unused")
   private InGameStateST() {
     this(0, Logger.Mode.BASIC, 0);
@@ -80,7 +89,9 @@ public class InGameStateST implements GameState, CreepManager {
     this.deadCreeps = new LinkedList<Creep>();
     this.newCreeps = new LinkedList<Creep>();
 
-    this.creepFactory = new CreepFactory();
+    this.creepPositions = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
+    
+    this.tileSize = new Signal<CopyableDimension>(new CopyableDimension(1,1));
     
     this.logger = new Logger();
     
@@ -93,6 +104,11 @@ public class InGameStateST implements GameState, CreepManager {
   }
 
   @Override
+  public void init(GameContainer container, StateBasedGame game)
+      throws SlickException {
+  }
+
+  @Override
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
     try {
@@ -100,34 +116,46 @@ public class InGameStateST implements GameState, CreepManager {
     } catch (SlickException e) {
       e.printStackTrace();
     }
+
+    this.updateThread = new Thread(this);
     
-    Vector2f dummy = new Vector2f(1,1);
-    InputSignal<CopyableDimension> tileSize = new Signal<CopyableDimension>(new CopyableDimension(1,1));
+    CopyableVector2f dummy = new CopyableVector2f(1,1);
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
       this.towerBallast.add(Tower.createTower(dummy));
     }
-    
-    for (int i = 0; i < 1024; ++i) {
-      this.creepBallast.add(this.creepFactory.spawnCreep(dummy, null, tileSize));
-    }
 
+    Signal<CopyableList<Pipe<CopyableVector2f>>> tempSignal = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
+    
+    Creep c = null;
+    for (int i = 0; i < 1024; ++i) {
+      c = new Creep();
+      CreepFactoryBehaviour.spawnCreep(CreepFactoryBehaviour.getSprite(), dummy, null, c, c, this.tileSize, this, tempSignal);
+      this.creepBallast.add(c);
+    }
+    
     for (int i = 0; i < this.numTowers; ++i) {
       this.towers.add(Tower.createTower(dummy));
     }
 
     this.logger.setLogMode(this.logMode);
     
-    this.logger.startLogging("SINGLETHREAD");
-  }
-
-  @Override
-  public void init(GameContainer container, StateBasedGame game)
-      throws SlickException {
+    if (this.getClass() == InGameStateST.class) {
+      this.logger.startLogging("SINGLETHREAD");
+      
+      this.updateThread.start();
+    }
   }
 
   @Override
   public void leave(GameContainer container, StateBasedGame game)
       throws SlickException {
+    this.updateThread.interrupt();
+    try {
+      this.updateThread.join();
+    } catch (InterruptedException e) {
+      //Goggles
+    }
+    
     this.logger.stopLogging();
     
     this.map = null;
@@ -221,6 +249,41 @@ public class InGameStateST implements GameState, CreepManager {
     this.deadCreeps.clear();
     
     this.logger.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
+  }
+
+  @Override
+  public void onDeath(Creep c) {
+    this.deadCreeps.add(c);
+  }
+
+  @Override
+  public void onSpawn(Creep c) {
+    this.newCreeps.add(c);
+  }
+
+  @Override
+  public void spawnCreep(
+      CopyableVector2f position,
+      Queue<CheckPoint> checkpoints) {
+    Creep c = new Creep();
+    
+    CreepFactoryBehaviour.spawnCreep(
+        CreepFactoryBehaviour.getSprite(),
+        position,
+        checkpoints,
+        c,
+        c,
+        tileSize,
+        this,
+        this.creepPositions);
+    
+    this.onSpawn(c);
+  }
+
+  @Override
+  public void handleEvent(Event event) {
+    // TODO Auto-generated method stub
+    
   }
 
   @Override
@@ -356,23 +419,8 @@ public class InGameStateST implements GameState, CreepManager {
   }
 
   @Override
-  public void onDeath(Creep c) {
-    this.deadCreeps.add(c);
-  }
-
-  @Override
-  public void onSpawn(Creep c) {
-    this.newCreeps.add(c);
-  }
-
-  @Override
-  public void spawnCreep(
-      Vector2f position,
-      Queue<CheckPoint> checkpoints) {
-    if (this.creepFactory == null) {
-      this.creepFactory = new CreepFactory();
-    }
+  public void run() {
+    // TODO Auto-generated method stub
     
-    this.onSpawn(this.creepFactory.spawnCreep(position, checkpoints, this.tileSize));
   }
 }
