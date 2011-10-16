@@ -302,18 +302,9 @@ public class Logger implements Runnable {
       this.pendingMessages.add(m);
     }
 
-    TaskStats ms = this.taskStats.get(m.name);
-    
-    if (ms == null) {
-      synchronized (this.taskStats) {
-        if (!this.taskStats.containsKey(m.name)) {
-          ms = new TaskStats();
-          this.taskStats.put(m.name, ms);
-        }
-      }
-    }
-  
     if (this.mode == Mode.SAMPLE) {
+      TaskStats ms = this.taskStats.get(m.name);
+    
       ms.totalRuntime.addAndGet(m.duration);
       
       double xbar_n1 = ms.meanRuntime.get();
@@ -333,6 +324,8 @@ public class Logger implements Runnable {
         if (!this.taskStats.containsKey(m)) {
           ms = new TaskStats();
           this.taskStats.put(m, ms);
+        } else {
+          ms = this.taskStats.get(ms);
         }
       }
     }
@@ -348,6 +341,8 @@ public class Logger implements Runnable {
         if (!this.taskStats.containsKey(m)) {
           ms = new TaskStats();
           this.taskStats.put(m, ms);
+        } else {
+          ms = this.taskStats.get(ms);
         }
       }
     }
@@ -363,6 +358,8 @@ public class Logger implements Runnable {
         if (!this.taskStats.containsKey(m)) {
           ms = new TaskStats();
           this.taskStats.put(m, ms);
+        } else {
+          ms = this.taskStats.get(ms);
         }
       }
     }

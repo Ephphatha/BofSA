@@ -26,6 +26,8 @@ package au.edu.csu.bofsa;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
@@ -45,7 +47,7 @@ import au.edu.csu.bofsa.Signals.Signal;
  * @author ephphatha
  *
  */
-public class InGameStateST implements CreepManager, EventSink, GameState, Runnable {
+public class InGameStateST implements Comparable<Object>, CreepManager, EventSink, GameState, Runnable {
   private int stateID;
   
   protected GameLevelST map;
@@ -60,6 +62,7 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
   protected List<Creep> creepBallast;
   
   protected Logger logger;
+  protected Logger dummyLogger;
 
   protected Logger.Mode logMode;
 
@@ -70,6 +73,8 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
   protected Signal<CopyableList<Pipe<CopyableVector2f>>> creepPositions;
 
   protected Thread updateThread;
+
+  private float elapsed;
   
   @SuppressWarnings("unused")
   private InGameStateST() {
@@ -81,12 +86,12 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     
     this.numTowers = numTowers;
 
-    this.towers = new LinkedList<Tower>();
+    this.towers = new CopyOnWriteArrayList<Tower>();
     this.towerBallast = new LinkedList<Tower>();
     this.creeps = new LinkedList<Creep>();
     this.creepBallast = new LinkedList<Creep>();
-    this.deadCreeps = new LinkedList<Creep>();
-    this.newCreeps = new LinkedList<Creep>();
+    this.deadCreeps = new ConcurrentLinkedQueue<Creep>();
+    this.newCreeps = new ConcurrentLinkedQueue<Creep>();
 
     this.creepPositions = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
     
@@ -115,6 +120,8 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     } catch (SlickException e) {
       e.printStackTrace();
     }
+    
+    this.elapsed = 0;
 
     this.updateThread = new Thread(this);
     
@@ -122,7 +129,8 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     CopyablePoint dummy = new CopyablePoint(0,0);
     Tower t = null;
     for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
-      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, null);
+      t = new Tower(dummy);
+      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, this);
       this.towerBallast.add(t);
     }
     }
@@ -131,10 +139,12 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     
     {
     CopyableVector2f dummy = new CopyableVector2f(1,1);
+    Queue<CheckPoint> cps = new LinkedList<CheckPoint>();
+    cps.add(new CheckPoint(0, dummy));
     Creep c = null;
     for (int i = 0; i < 1024; ++i) {
       c = new Creep();
-      CreepFactoryBehaviour.spawnCreep(dummy, null, c, c, this.tileSize, this, tempSignal);
+      CreepFactoryBehaviour.spawnCreep(dummy, cps, c, c, this.tileSize, this, tempSignal);
       this.creepBallast.add(c);
     }
     }
@@ -149,7 +159,10 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     }
 
     this.logger.setLogMode(this.logMode);
-    
+
+    this.dummyLogger = new Logger();
+    this.dummyLogger.setLogMode(this.logMode);
+
     if (this.getClass() == InGameStateST.class) {
       this.logger.startLogging("SINGLETHREAD");
       
@@ -166,6 +179,8 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
     } catch (InterruptedException e) {
       //Goggles
     }
+
+    this.dummyLogger = null;
     
     this.logger.stopLogging();
     
@@ -183,34 +198,24 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    //long start = System.nanoTime();
-
-    this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
-
-    for (int i = 0; i < this.towerBallast.size() - this.towers.size(); ++i) {
+    for (int i = 0; i < this.towerBallast.size(); ++i) {
       this.towerBallast.get(i).draw(g);
     }
     
-    for (int i = 0; i < this.creepBallast.size() - this.creeps.size(); ++i) {
+    for (int i = 0; i < this.creepBallast.size(); ++i) {
       this.creepBallast.get(i).draw(g);
     }
     
     if (this.map != null) {
+      this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
+
       this.map.render(container, g);
-      
-      for (Creep c : this.creeps) {
-        c.draw(g);
-      }
     }
-    
-    //this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
   public void update(GameContainer container, StateBasedGame game, int delta)
       throws SlickException {
-    long start = System.nanoTime();
-    
     Input input = container.getInput();
 
     Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
@@ -226,40 +231,58 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
         this.towers.add(t);
       }
     }
+
+    this.elapsed += delta/1000.0f;
     
-    if (input.isKeyPressed(Input.KEY_ESCAPE)) {
+    if (input.isKeyPressed(Input.KEY_ESCAPE) || this.elapsed >= 70.0f) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
     }
-    
-    if (this.map != null) {
-      this.map.update(delta / 1000.0f);
-    }
-    
+  }
+
+  public void update(final float delta) {
     // Game logic
     
-    for (Creep c : this.newCreeps) {
+    while (!this.newCreeps.isEmpty()) {
+      Creep c = this.newCreeps.poll();
       this.creeps.add(c);
     }
     
-    this.newCreeps.clear();
+    this.map.update(this, delta);
+    this.dummyLogger.taskRun("Spawn");
     
-    this.map.update(this, delta / 1000.0f);
-    
-    for (Tower t : this.towers) {
-      t.update(delta / 1000.0f);
+    for (final Tower t : this.towers) {
+      t.update(delta);
+      dummyLogger.taskRun("Attack");
+      dummyLogger.taskRun("Render");
     }
     
-    for (Creep c : this.creeps) {
-      c.update(this, delta / 1000.0f);
+    for (final Creep c : this.creeps) {
+      c.update(this, delta);
+      dummyLogger.taskRun("Move");
+      dummyLogger.taskRun("Velocity");
+      dummyLogger.taskRun("Collision");
+      dummyLogger.taskRun("Waypoint");
+      dummyLogger.taskRun("Health");
+      dummyLogger.taskRun("Render");
     }
-    
-    for (Creep c : this.deadCreeps) {
+
+    while (!this.deadCreeps.isEmpty()) {
+      Creep c = this.deadCreeps.poll();
       this.creeps.remove(c);
     }
     
-    this.deadCreeps.clear();
+    this.logger.taskRun("Update");
+  }
+
+  @Override
+  public void run() {
+    long last = System.nanoTime();
     
-    this.logger.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
+    while (!Thread.currentThread().isInterrupted()) {
+      long current = System.nanoTime();
+      this.update((current - last) / 1E9f);
+      last = current;
+    }
   }
 
   @Override
@@ -429,8 +452,7 @@ public class InGameStateST implements CreepManager, EventSink, GameState, Runnab
   }
 
   @Override
-  public void run() {
-    // TODO Auto-generated method stub
-    
+  public int compareTo(Object o) {
+    return this.hashCode() - o.hashCode();
   }
 }

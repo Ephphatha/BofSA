@@ -288,7 +288,11 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       if (this.idleThreads.isEmpty()) {
         return true;
       } else {
-        return false;
+        if (this.getActiveCount() > 0) {
+          return true;
+        } else {
+          return false;
+        }
       }
     }
     

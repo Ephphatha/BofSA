@@ -26,10 +26,7 @@ package au.edu.csu.bofsa;
 import java.util.concurrent.Callable;
 
 import org.newdawn.slick.GameContainer;
-import org.newdawn.slick.Graphics;
-import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
-import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.StateBasedGame;
 
 /**
@@ -38,13 +35,8 @@ import org.newdawn.slick.state.StateBasedGame;
  */
 public class InGameStateDP extends InGameStateST {
  
-  //private Thread daemonThread;
-  
-  private Logger logger2;
-
   private int maxThreads;
 
-  private Logger dummyLogger;
   private Scheduler scheduler;
 
   @SuppressWarnings("unused")
@@ -76,83 +68,13 @@ public class InGameStateDP extends InGameStateST {
     
     this.logger.startLogging("DATAPARALLEL", numThreads);
     
-    this.logger2 = new Logger();
-    this.logger2.setLogMode(this.logMode);
-
-    this.dummyLogger = new Logger();
-    this.dummyLogger.setLogMode(this.logMode);
-
     this.scheduler.start(Scheduler.Mode.UNORDERED, numThreads, this.logMode);
 
     this.updateThread.start();
   }
 
   @Override
-  public void init(GameContainer container, StateBasedGame game)
-      throws SlickException {
-  }
-
-  @Override
-  public void leave(GameContainer container, StateBasedGame game)
-      throws SlickException {
-    this.logger.merge(this.logger2);
-    
-    this.logger2 = null;
-    this.dummyLogger = null;
-    
-    this.logger.stopLogging();
-    
-    this.map = null;
-    
-    this.towerBallast.clear();
-    this.creepBallast.clear();
-
-    this.towers.clear();
-    this.creeps.clear();
-    this.deadCreeps.clear();
-    this.newCreeps.clear();
-  }
-
-  @Override
-  public void render(GameContainer container, StateBasedGame game, Graphics g)
-      throws SlickException {
-    super.render(container, game, g);
-  }
-
-  @Override
-  public void update(GameContainer container, StateBasedGame game, int delta)
-      throws SlickException {
-    //long start = System.nanoTime();
-    
-    Input input = container.getInput();
-
-    Vector2f relativeInput = new Vector2f((float) input.getMouseX() / (float) container.getWidth(),
-                                          (float) input.getMouseY() / (float) container.getHeight());
-    
-    if (input.isMousePressed(Input.MOUSE_LEFT_BUTTON)) {
-      CopyablePoint towerPos = new CopyablePoint((int) Math.floor(relativeInput.x * this.map.getWidth()),
-                                                 (int) Math.floor(relativeInput.y * this.map.getHeight()));
-      
-      Tower t = this.map.spawnTower(towerPos, this.creepPositions, this.tileSize, this);
-      
-      if (t != null) {
-        this.towers.add(t);
-      }
-    }
-    
-    if (input.isKeyPressed(Input.KEY_ESCAPE)) {
-      game.enterState(BofSA.States.MAINMENU.ordinal());
-    }
-    
-    if (this.map != null) {
-      this.map.update(delta / 1000.0f);
-    }
-    
-    //this.logger.taskRun(new Logger.Task("Input", start, System.nanoTime() - start));
-  }
-
   public void update(final float delta) {
-    long start = System.nanoTime();
     // Game logic
     
     while (!this.newCreeps.isEmpty()) {
@@ -203,22 +125,12 @@ public class InGameStateDP extends InGameStateST {
       this.creeps.remove(c);
     }
     
-    this.logger2.taskRun(new Logger.Task("Update", start, System.nanoTime() - start));
+    this.logger.taskRun("Update");
   }
 
   private void waitForPendingTasks() {
     while (!this.scheduler.isBusy() && !Thread.currentThread().isInterrupted()) {
-    }
-  }
-
-  @Override
-  public void run() {
-    long last = System.nanoTime();
-    
-    while (!Thread.currentThread().isInterrupted()) {
-      long current = System.nanoTime();
-      this.update((current - last) / 1E9f);
-      last = current;
+      continue;
     }
   }
 }

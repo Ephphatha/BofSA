@@ -80,6 +80,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
 
   private int numTowers;
 
+  private float elapsed;
+
   @SuppressWarnings("unused")
   private InGameStateTB() {
     this(0, Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
@@ -126,10 +128,22 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   }
 
   @Override
+  public void init(GameContainer container, StateBasedGame game)
+      throws SlickException {
+    this.towerCount = 0;
+    
+    this.broadcastStream.addSink(this);
+    
+    this.tileSize.write(new CopyableDimension(container.getWidth(), container.getHeight()));
+  }
+
+  @Override
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
     CreepFactoryBehaviour.loadResources();
     TowerFactoryBehaviour.loadResources();
+    
+    this.elapsed = 0;
     
     this.logger.setLogMode(logMode);
     
@@ -199,16 +213,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   }
 
   @Override
-  public void init(GameContainer container, StateBasedGame game)
-      throws SlickException {
-    this.towerCount = 0;
-    
-    this.broadcastStream.addSink(this);
-    
-    this.tileSize.write(new CopyableDimension(container.getWidth(), container.getHeight()));
-  }
-
-  @Override
   public void leave(GameContainer container, StateBasedGame game)
       throws SlickException {
     this.map = null;
@@ -217,8 +221,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     this.creepFactory.handleEvent(new GenericEvent(this, GenericEvent.Message.FORGET_ALL, Event.Type.TARGETTED, System.nanoTime()));
 
     this.scheduler.stop();
-    
-    //this.daemonThread.interrupt();
     
     this.drawables.clear();
     
@@ -233,8 +235,6 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    //long start = System.nanoTime();
-    
     for (int i = 0; i < this.towerBallast.size() - this.towerCount; ++i) {
       this.towerBallast.get(i).draw(g);
     }
@@ -246,12 +246,10 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
     if (this.map != null) {
       this.map.render(container, g);
       
-      for (Drawable d : this.drawables) {
-        d.draw(g);
-      }
+      //for (Drawable d : this.drawables) {
+        //d.draw(g);
+      //}
     }
-
-    //this.logger.taskRun(new Logger.Task("Render", start, System.nanoTime() - start));
   }
 
   @Override
@@ -259,7 +257,9 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
       throws SlickException {
     Input input = container.getInput();
 
-    if (input.isKeyPressed(Input.KEY_ESCAPE)) {
+    this.elapsed += delta/1000.0f;
+    
+    if (input.isKeyPressed(Input.KEY_ESCAPE) || this.elapsed >= 70.0f) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
     }
   }
@@ -268,13 +268,13 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
   public void handleEvent(Event event) {
     if (event instanceof GenericEvent) {
       if ((GenericEvent.Message)event.value == GenericEvent.Message.ADD_DRAWABLE) {
-        this.drawables.add((Drawable) event.getSource());
+        //this.drawables.add((Drawable) event.getSource());
         
-        if (event.getSource() instanceof RenderBehaviour && !(event.getSource() instanceof ActorRenderBehaviour)) {
-          this.towerCount++;
-        }
+        //if (event.getSource() instanceof RenderBehaviour && !(event.getSource() instanceof ActorRenderBehaviour)) {
+          //this.towerCount++;
+        //}
       } else if ((GenericEvent.Message)event.value == GenericEvent.Message.REMOVE_DRAWABLE) {
-        this.drawables.remove(event.getSource());
+        //this.drawables.remove(event.getSource());
       }
     }
   }

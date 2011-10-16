@@ -84,16 +84,6 @@ public class GameLevelST {
       if (this.background!= null) {
         this.background.draw(tile.getX(), tile.getY(), tile.getWidth(), tile.getHeight());
       }
-      
-      if (this.tower != null) {
-        this.tower.draw(g, tile);
-      }
-    }
-    
-    public void update(float dt) {
-      if (this.tower != null) {
-        this.tower.update(dt);
-      }
     }
     
     public boolean isPathable() {
@@ -259,14 +249,6 @@ public class GameLevelST {
     }
     
     g.popTransform();
-  }
-  
-  public void update(float dt) {
-    for (int x = 0; x < this.size.width; ++x) {
-      for (int y = 0; y < this.size.height; ++y) {
-        this.board[x][y].update(dt);
-      }
-    }
   }
   
   public void update(CreepManager cm, float dt) {

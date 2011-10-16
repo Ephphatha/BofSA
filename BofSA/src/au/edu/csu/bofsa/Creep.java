@@ -42,7 +42,7 @@ import au.edu.csu.bofsa.Events.GenericEvent;
  * @author ephphatha
  *
  */
-public class Creep implements EventSink {
+public class Creep implements Comparable<Object>, EventSink {
 
   private HealthBehaviour h;
   private MoveBehaviour m;
@@ -119,5 +119,10 @@ public class Creep implements EventSink {
         this.arb = (ActorRenderBehaviour) o;
       }
     }
+  }
+
+  @Override
+  public int compareTo(Object o) {
+    return this.hashCode() - o.hashCode();
   }
 }
