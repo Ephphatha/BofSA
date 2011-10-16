@@ -169,7 +169,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
 
     if (t != null) {
       worker.call(t);
-    } else if (this.idleThreads.size() + 1 < this.threads.size()) {
+    } else {
       worker.setPriority(Thread.MIN_PRIORITY);
       this.idleThreads.add(worker);
     }
