@@ -64,12 +64,10 @@ public class InGameStateDP extends InGameStateST {
       throws SlickException {
     super.enter(container, game);
     
-    int numThreads = Math.max(this.maxThreads - 2, 1);
-    
-    this.logger.startLogging("DATAPARALLEL", numThreads);
-    
-    this.scheduler.start(Scheduler.Mode.UNORDERED, numThreads, this.logMode);
+    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads - 2, this.logMode);
 
+    this.logger.startLogging("DATAPARALLEL", this.scheduler.numThreads());
+    
     this.updateThread.start();
   }
 
