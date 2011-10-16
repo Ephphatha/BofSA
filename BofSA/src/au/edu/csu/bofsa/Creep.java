@@ -23,6 +23,8 @@
  */
 package au.edu.csu.bofsa;
 
+import java.util.concurrent.Callable;
+
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.geom.Rectangle;
 import org.newdawn.slick.geom.Vector2f;
@@ -42,7 +44,7 @@ import au.edu.csu.bofsa.Events.GenericEvent;
  * @author ephphatha
  *
  */
-public class Creep implements Comparable<Object>, EventSink {
+public class Creep implements Callable<Boolean>, Comparable<Object>, EventSink {
 
   private HealthBehaviour h;
   private MoveBehaviour m;
@@ -50,9 +52,14 @@ public class Creep implements Comparable<Object>, EventSink {
   private VelocityBehaviour v;
   private CollisionBehaviour c;
   private ActorRenderBehaviour arb;
+  
+  private CreepManager cm;
+  
   private boolean isDead;
   
-  Creep() {
+  Creep(CreepManager cm) {
+    this.cm = cm;
+    
     this.isDead = false;
   }
   
@@ -73,12 +80,8 @@ public class Creep implements Comparable<Object>, EventSink {
     this.arb.draw(g);
   }
   
-  public void update(float dt) {
+  public Boolean call() {
     this.arb.call();
-  }
-  
-  public void update(CreepManager cm, float dt) {
-    this.update(dt);
     
     this.h.call();
     
@@ -91,8 +94,10 @@ public class Creep implements Comparable<Object>, EventSink {
     this.w.call();
     
     if (this.isDead) {
-      cm.onDeath(this);
+      this.cm.onDeath(this);
     }
+    
+    return false;
   }
 
   public void takeDamage(float damage) {

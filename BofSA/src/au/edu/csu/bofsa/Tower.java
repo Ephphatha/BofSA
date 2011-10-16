@@ -23,6 +23,8 @@
  */
 package au.edu.csu.bofsa;
 
+import java.util.concurrent.Callable;
+
 import org.newdawn.slick.Graphics;
 
 import au.edu.csu.bofsa.Behaviours.AttackBehaviour;
@@ -35,7 +37,7 @@ import au.edu.csu.bofsa.Events.GenericEvent;
  * @author ephphatha
  *
  */
-public class Tower implements EventSink{
+public class Tower implements Callable<Boolean>, EventSink{
   private AttackBehaviour a;
   private RenderBehaviour r;
   
@@ -45,10 +47,12 @@ public class Tower implements EventSink{
     this.position = position;
   }
   
-  public void update(float dt) {
+  public Boolean call() {
     this.a.call();
     
     this.r.call();
+    
+    return false;
   }
 
   public void draw(Graphics g) {

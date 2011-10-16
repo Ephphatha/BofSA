@@ -23,8 +23,6 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.concurrent.Callable;
-
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.state.StateBasedGame;
@@ -91,37 +89,22 @@ public class InGameStateDP extends InGameStateST {
     this.map.update(this, delta);
     this.dummyLogger.taskRun("Spawn");
     
-    for (final Tower t : this.towers) {
-      this.scheduler.call(
-          new Callable<Boolean>() {
-            public Boolean call() {
-              t.update(delta);
-              dummyLogger.taskRun("Attack");
-              dummyLogger.taskRun("Render");
-              return true;
-            }
-          }
-      );
+    for (Tower t : this.towers) {
+      this.scheduler.call(t);
+      dummyLogger.taskRun("Attack");
+      dummyLogger.taskRun("Render");
     }
     
     this.waitForPendingTasks();
     
-    final CreepManager man = this;
-    for (final Creep c : this.creeps) {
-      this.scheduler.call(
-          new Callable<Boolean>() {
-            public Boolean call() {
-              c.update(man, delta);
-              dummyLogger.taskRun("Move");
-              dummyLogger.taskRun("Velocity");
-              dummyLogger.taskRun("Collision");
-              dummyLogger.taskRun("Waypoint");
-              dummyLogger.taskRun("Health");
-              dummyLogger.taskRun("Render");
-              return true;
-            }
-          }
-      );
+    for (Creep c : this.creeps) {
+      this.scheduler.call(c);
+      dummyLogger.taskRun("Move");
+      dummyLogger.taskRun("Velocity");
+      dummyLogger.taskRun("Collision");
+      dummyLogger.taskRun("Waypoint");
+      dummyLogger.taskRun("Health");
+      dummyLogger.taskRun("Render");
     }
 
     this.waitForPendingTasks();

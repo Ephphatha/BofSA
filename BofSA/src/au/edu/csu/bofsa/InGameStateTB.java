@@ -250,6 +250,8 @@ public class InGameStateTB implements GameState, EventSink, Comparable<Object> {
         //d.draw(g);
       //}
     }
+    
+    this.logger.taskRun("Render");
   }
 
   @Override

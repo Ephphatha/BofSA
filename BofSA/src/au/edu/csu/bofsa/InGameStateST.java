@@ -37,10 +37,13 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
+import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
+import au.edu.csu.bofsa.Behaviours.RenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
+import au.edu.csu.bofsa.Events.Stream;
 import au.edu.csu.bofsa.Signals.Signal;
 
 /**
@@ -58,8 +61,8 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   protected List<Creep> creeps;
   protected Queue<Creep> deadCreeps;
   
-  protected List<Tower> towerBallast;
-  protected List<Creep> creepBallast;
+  protected List<Drawable> towerBallast;
+  protected List<Drawable> creepBallast;
   
   protected Logger logger;
   protected Logger dummyLogger;
@@ -86,10 +89,11 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
     
     this.numTowers = numTowers;
 
+    this.towerBallast = new LinkedList<Drawable>();
+    this.creepBallast = new LinkedList<Drawable>();
+    
     this.towers = new CopyOnWriteArrayList<Tower>();
-    this.towerBallast = new LinkedList<Tower>();
     this.creeps = new LinkedList<Creep>();
-    this.creepBallast = new LinkedList<Creep>();
     this.deadCreeps = new ConcurrentLinkedQueue<Creep>();
     this.newCreeps = new ConcurrentLinkedQueue<Creep>();
 
@@ -125,36 +129,50 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
 
     this.updateThread = new Thread(this);
     
-    {
-    CopyablePoint dummy = new CopyablePoint(0,0);
-    Tower t = null;
-    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
-      t = new Tower(dummy);
-      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, this);
-      this.towerBallast.add(t);
-    }
-    }
+    Stream dummyStream = new Stream();
+    Signal<CopyableVector2f> dummy = new Signal<CopyableVector2f>(new CopyableVector2f(1,1));
 
-    Signal<CopyableList<Pipe<CopyableVector2f>>> tempSignal = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
+    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
+      this.towerBallast.add(
+          new RenderBehaviour(
+              new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+              dummy,
+              this.tileSize,
+              TowerFactoryBehaviour.getSprite(),
+              dummyStream));
+    }
+    
+    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(1));
+    Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
+
+    for (int i = 0; i < 4; ++i) {
+      a[i] = new Sprite.SequencePoint[1];
+      for (int j = 0; j < 1; ++j) {
+        a[i][j] = new Sprite.SequencePoint((i * 4) + j, 0.25f);
+      }
+    }
+    
+    for (int i = 0; i < 1024; ++i) {
+      this.creepBallast.add(
+          new ActorRenderBehaviour(
+              new Signal<CopyableBoolean>(new CopyableBoolean(true)),
+              dummy,
+              dummy,
+              health,
+              health,
+              this.tileSize,
+              CreepFactoryBehaviour.getSprite(),
+              a,
+              dummyStream,
+              dummyStream));
+    }
     
     {
-    CopyableVector2f dummy = new CopyableVector2f(1,1);
-    Queue<CheckPoint> cps = new LinkedList<CheckPoint>();
-    cps.add(new CheckPoint(0, dummy));
-    Creep c = null;
-    for (int i = 0; i < 1024; ++i) {
-      c = new Creep();
-      CreepFactoryBehaviour.spawnCreep(dummy, cps, c, c, this.tileSize, this, tempSignal);
-      this.creepBallast.add(c);
-    }
-    }
-
-    {
-    CopyablePoint dummy = new CopyablePoint(0,0);
+    CopyablePoint dummypoint = new CopyablePoint(0,0);
     Tower t = null;
     for (int i = 0; i < this.numTowers; ++i) {
-      t = new Tower(dummy);
-      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, this);
+      t = new Tower(dummypoint);
+      TowerFactoryBehaviour.createTower(dummypoint, this.creepPositions, t, this.tileSize, this);
       this.towers.add(t);
     }
     }
@@ -212,6 +230,8 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
 
       this.map.render(container, g);
     }
+    
+    this.logger.taskRun("Render");
   }
 
   @Override
@@ -252,13 +272,13 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
     this.dummyLogger.taskRun("Spawn");
     
     for (final Tower t : this.towers) {
-      t.update(delta);
+      t.call();
       dummyLogger.taskRun("Attack");
       dummyLogger.taskRun("Render");
     }
     
     for (final Creep c : this.creeps) {
-      c.update(this, delta);
+      c.call();
       dummyLogger.taskRun("Move");
       dummyLogger.taskRun("Velocity");
       dummyLogger.taskRun("Collision");
@@ -300,7 +320,7 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   public void spawnCreep(
       CopyableVector2f position,
       Queue<CheckPoint> checkpoints) {
-    Creep c = new Creep();
+    Creep c = new Creep(this);
     
     CreepFactoryBehaviour.spawnCreep(
         position,

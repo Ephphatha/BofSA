@@ -239,22 +239,22 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       switch (this.mode) {
       case UNORDERED:
       case ORDERED_RETRY:
-        this.tasks.add(c);
+        this.tasks.offer(c);
         break;
         
       case ORDERED_PRECOMPUTE:
         if (c instanceof Behaviour<?>) {
           if (((Behaviour<?>) c).isReady()) {
-            this.tasks.add(c);
+            this.tasks.offer(c);
           } else {
             if (this.logger != null) {
               this.logger.taskWaited(((Behaviour<?>) c).getName());
             }
           
-            this.unsortedTasks.add(c);
+            this.unsortedTasks.offer(c);
           }
         } else {
-          this.tasks.add(c);
+          this.tasks.offer(c);
         }
       }
     }
