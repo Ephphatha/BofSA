@@ -70,6 +70,14 @@ public class InGameStateDP extends InGameStateST {
     
     this.updateThread.start();
   }
+  
+  @Override
+  public void leave(GameContainer container, StateBasedGame game)
+      throws SlickException {
+    this.scheduler.stop();
+    
+    super.leave(container, game);
+  }
 
   @Override
   public void update(final float delta) {
