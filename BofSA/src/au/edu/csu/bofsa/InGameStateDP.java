@@ -118,8 +118,8 @@ public class InGameStateDP extends InGameStateST {
   }
 
   private void waitForPendingTasks() {
-    while (!this.scheduler.isBusy() && !Thread.currentThread().isInterrupted()) {
-      continue;
+    while (this.scheduler.isBusy() && !Thread.currentThread().isInterrupted()) {
+      Thread.yield();
     }
   }
 }
