@@ -153,7 +153,8 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
     CopyablePoint dummy = new CopyablePoint(0,0);
     Tower t = null;
     for (int i = 0; i < this.numTowers; ++i) {
-      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, null);
+      t = new Tower(dummy);
+      TowerFactoryBehaviour.createTower(dummy, this.creepPositions, t, this.tileSize, this);
       this.towers.add(t);
     }
     }
