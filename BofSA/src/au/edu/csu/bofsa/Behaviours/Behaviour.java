@@ -41,6 +41,7 @@ import au.edu.csu.bofsa.Signals.Signal;
  */
 public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boolean>, EventSink, Comparable<Object> {
   
+  private static final int BALLASTITERATIONS = 1000;
   protected long lastStartTime;
   protected long lastEndTime;
   
@@ -51,6 +52,8 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
   protected long deltaThreshold;
   protected final String name;
 
+  public long fibresult;
+  
   public Behaviour(String name, Signal<T> signal) {
     this.name = name;
     this.lastStartTime = System.nanoTime();
@@ -86,6 +89,17 @@ public abstract class Behaviour<T extends Copyable<T>> implements Callable<Boole
     this.lastStartTime = System.nanoTime();
     
     boolean retVal = this.doRun();
+    
+    long a = 1;
+    long b = 1;
+    
+    for (int i = 0; i < Behaviour.BALLASTITERATIONS; ++i) {
+      long temp = a;
+      a += b;
+      b = temp;
+    }
+    
+    this.fibresult = a;
     
     this.lastEndTime = System.nanoTime();
     

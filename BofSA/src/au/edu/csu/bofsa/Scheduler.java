@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -49,6 +50,8 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   protected List<Callable<Boolean>> waitingTasks;
   protected Lock waitingLock;
   protected Queue<Callable<Boolean>> unsortedTasks;
+  
+  protected AtomicInteger numIdle;
   
   protected Logger logger;
   
@@ -76,6 +79,8 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.waitingLock = new ReentrantLock();
     this.unsortedTasks = new ConcurrentLinkedQueue<Callable<Boolean>>();
     
+    this.numIdle = new AtomicInteger();
+    
     this.state = State.STOPPED;
     
     this.mode = Mode.ORDERED_PRECOMPUTE;
@@ -83,6 +88,8 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   
   public void start(Mode scheduleMode, int workers, Logger.Mode logMode) {
     this.mode = scheduleMode;
+    
+    this.numIdle.set(0);
     
     int numWorkers = Math.max(workers, 1);
     
@@ -147,6 +154,8 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.logger.merge(offBuffer.poll());
     
     this.tasks.clear();
+    
+    this.numIdle.set(0);
   }
   
   public void slice(WorkerThread worker) {
@@ -160,8 +169,13 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
       WorkerThread w = this.idleThreads.poll();
       
       if (w != null) {
+        this.numIdle.decrementAndGet();
         w.setPriority(Thread.NORM_PRIORITY /*+ 1*/);
         w.call(t);
+        
+        if (w == worker) {
+          return;
+        }
   
         t = this.getNextTask();
       }
@@ -172,11 +186,12 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     } else {
       worker.setPriority(Thread.MIN_PRIORITY);
       this.idleThreads.add(worker);
+      this.numIdle.incrementAndGet();
     }
   }
 
   public int getActiveCount() {
-    return this.threads.size() - this.idleThreads.size();
+    return this.threads.size() - this.numIdle.get();
   }
   
   protected Callable<Boolean> getNextTask() {
@@ -285,14 +300,10 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     }
     
     if (this.tasks.isEmpty()) {
-      if (this.idleThreads.isEmpty()) {
+      if (this.getActiveCount() > 0) {
         return true;
       } else {
-        if (this.getActiveCount() > 0) {
-          return true;
-        } else {
-          return false;
-        }
+        return false;
       }
     }
     
