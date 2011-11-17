@@ -203,6 +203,15 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
 
   @Override
   public void onDeath(Creep c) {
+    CopyableList<Pipe<CopyableVector2f>> temp = this.creepPositions.read().copy();
+    
+    for (int i = temp.size() - 1; i >= 0; --i) {
+      if (temp.get(i).signal.equals(c.getPositionSignal())) {
+        temp.remove(i);
+      }
+    }
+    
+    this.creepPositions.write(temp);
     this.deadCreeps.add(c);
   }
 
@@ -222,7 +231,7 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
         checkpoints,
         c,
         c,
-        tileSize,
+        this.tileSize,
         this,
         this.creepPositions);
     

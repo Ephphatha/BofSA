@@ -39,9 +39,9 @@
   <object name="Goal" type="Goal" x="832" y="448" width="1" height="1"/>
   <object name="Spawn" type="Spawn" x="448" y="64" width="1" height="1">
    <properties>
-    <property name="lullDuration" value="120"/>
-    <property name="spawnDuration" value="8"/>
-    <property name="spawnInterval" value="0.0078125"/>
+    <property name="lullDuration" value="20"/>
+    <property name="spawnDuration" value="10"/>
+    <property name="spawnInterval" value="0.5"/>
    </properties>
   </object>
  </objectgroup>

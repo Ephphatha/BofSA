@@ -39,6 +39,7 @@ import au.edu.csu.bofsa.Events.DamageEvent;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
 import au.edu.csu.bofsa.Events.GenericEvent;
+import au.edu.csu.bofsa.Signals.Signal;
 
 /**
  * @author ephphatha
@@ -129,5 +130,9 @@ public class Creep implements Callable<Boolean>, Comparable<Object>, EventSink {
   @Override
   public int compareTo(Object o) {
     return this.hashCode() - o.hashCode();
+  }
+
+  public Signal<CopyableVector2f> getPositionSignal() {
+    return this.m.getSignal();
   }
 }
