@@ -47,9 +47,6 @@ public class BofSA extends StateBasedGame {
   public static void main(String[] args) {
     //Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 2);
     int maxThreads = Runtime.getRuntime().availableProcessors();
-    int numTowers = 0;
-    
-    Logger.Mode logMode = Logger.Mode.BASIC;
     
     for (String s : args) {
       if (s.startsWith("-t")) {
@@ -58,25 +55,11 @@ public class BofSA extends StateBasedGame {
         } catch (NumberFormatException e) {
           //Goggles
         }
-      } else if (s.startsWith("-l")) {
-        if (s.substring(2).equalsIgnoreCase("Detailed")) {
-          logMode = Logger.Mode.DETAILED;
-        } else if (s.substring(2).equalsIgnoreCase("Sample")) {
-          logMode = Logger.Mode.SAMPLE;
-        } else {
-          logMode = Logger.Mode.BASIC;
-        }
-      } else if (s.startsWith("-n")) {
-        try {
-          numTowers = Integer.parseInt(s.substring(2));
-        } catch (NumberFormatException e) {
-          //Goggles
-        }
       }
     }
     
     try {
-      AppGameContainer app = new AppGameContainer(new BofSA(maxThreads, logMode, numTowers));
+      AppGameContainer app = new AppGameContainer(new BofSA(maxThreads));
       app.setDisplayMode(800, 600, false);
       app.start();
     } catch (SlickException e) {
@@ -100,9 +83,9 @@ public class BofSA extends StateBasedGame {
     super("Bank of SA");
     
     this.addState(new MainMenuState(States.MAINMENU.ordinal()));
-    this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal(), logMode, numTowers));
-    this.addState(new InGameStateDP(States.DATA_PARALLEL.ordinal(), maxThreads, logMode, numTowers));
-    this.addState(new InGameStateTB(States.TASK_BASED.ordinal(), maxThreads, logMode, numTowers));
+    this.addState(new InGameStateST(States.SINGLE_THREAD.ordinal()));
+    this.addState(new InGameStateDP(States.DATA_PARALLEL.ordinal(), maxThreads));
+    this.addState(new InGameStateTB(States.TASK_BASED.ordinal(), maxThreads));
     
     this.enterState(States.MAINMENU.ordinal());
   }

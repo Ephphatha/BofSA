@@ -53,8 +53,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   
   protected AtomicInteger numIdle;
   
-  protected Logger logger;
-  
   protected static enum State {
     RUNNING,
     STOPPED
@@ -86,7 +84,7 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     this.mode = Mode.ORDERED_PRECOMPUTE;
   }
   
-  public void start(Mode scheduleMode, int workers, Logger.Mode logMode) {
+  public void start(Mode scheduleMode, int workers) {
     this.mode = scheduleMode;
     
     this.numIdle.set(0);
@@ -95,7 +93,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     
     for (int i = 0; i < numWorkers; ++i) {
       WorkerThread w = new WorkerThread(this);
-      w.getLogger().setLogMode(logMode);
       this.threads.add(w);
     }
     
@@ -113,8 +110,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   public void stop() {
     this.state = State.STOPPED;
     
-    Queue<Logger> buffer = new LinkedList<Logger>();
-    
     for (Thread t : this.threads) {
       t.interrupt();
     }
@@ -124,34 +119,10 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
         t.join(25);
       } catch (InterruptedException e) {
         //Goggles
-      } finally {
-        if (t instanceof WorkerThread) {
-          WorkerThread w = (WorkerThread) t;
-          buffer.offer(w.getLogger());
-        }
       }
     }
 
     this.threads.clear();
-    
-    Queue<Logger> offBuffer = new LinkedList<Logger>();
-    
-    do {
-      while (!offBuffer.isEmpty()) {
-        buffer.offer(offBuffer.poll());
-      }
-      
-      while (!buffer.isEmpty()) {
-        Logger a = buffer.poll();
-        Logger b = buffer.poll();
-        
-        a.merge(b);
-        
-        offBuffer.offer(a);
-      }
-    } while (offBuffer.size() > 1);
-    
-    this.logger.merge(offBuffer.poll());
     
     this.tasks.clear();
     
@@ -184,9 +155,11 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     if (t != null) {
       worker.call(t);
     } else {
-      worker.setPriority(Thread.MIN_PRIORITY);
-      this.idleThreads.add(worker);
-      this.numIdle.incrementAndGet();
+      if (worker.getPriority() != Thread.MIN_PRIORITY) {
+        worker.setPriority(Thread.MIN_PRIORITY);
+        this.idleThreads.add(worker);
+        this.numIdle.incrementAndGet();
+      }
     }
   }
 
@@ -204,10 +177,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
     case ORDERED_RETRY:
       while (t != null && t instanceof Behaviour<?> && !((Behaviour<?>) t).isReady()) {
         this.tasks.add(t);
-        
-        if (this.logger != null) {
-          this.logger.taskRetried(t.getClass().getSimpleName());
-        }
         
         t = this.tasks.poll();
       }
@@ -262,10 +231,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
           if (((Behaviour<?>) c).isReady()) {
             this.tasks.offer(c);
           } else {
-            if (this.logger != null) {
-              this.logger.taskWaited(((Behaviour<?>) c).getName());
-            }
-          
             this.unsortedTasks.offer(c);
           }
         } else {
@@ -288,10 +253,6 @@ public class Scheduler implements Caller<Boolean>, EventSink, Comparable<Object>
   @Override
   public int compareTo(Object o) {
     return this.hashCode() - o.hashCode();
-  }
-
-  public void setLogger(Logger logger) {
-    this.logger = logger;
   }
 
   public boolean isBusy() {

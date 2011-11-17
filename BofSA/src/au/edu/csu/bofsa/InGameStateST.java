@@ -23,7 +23,6 @@
  */
 package au.edu.csu.bofsa;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -37,13 +36,10 @@ import org.newdawn.slick.geom.Vector2f;
 import org.newdawn.slick.state.GameState;
 import org.newdawn.slick.state.StateBasedGame;
 
-import au.edu.csu.bofsa.Behaviours.ActorRenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.CreepFactoryBehaviour;
-import au.edu.csu.bofsa.Behaviours.RenderBehaviour;
 import au.edu.csu.bofsa.Behaviours.TowerFactoryBehaviour;
 import au.edu.csu.bofsa.Events.Event;
 import au.edu.csu.bofsa.Events.EventSink;
-import au.edu.csu.bofsa.Events.Stream;
 import au.edu.csu.bofsa.Signals.Signal;
 
 /**
@@ -61,49 +57,28 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   protected List<Creep> creeps;
   protected Queue<Creep> deadCreeps;
   
-  protected List<Drawable> towerBallast;
-  protected List<Drawable> creepBallast;
-  
-  protected Logger logger;
-  protected Logger dummyLogger;
-
-  protected Logger.Mode logMode;
-
-  protected int numTowers;
-
   protected Signal<CopyableDimension> tileSize;
 
   protected Signal<CopyableList<Pipe<CopyableVector2f>>> creepPositions;
 
   protected Thread updateThread;
 
-  private float elapsed;
-  
   @SuppressWarnings("unused")
   private InGameStateST() {
-    this(0, Logger.Mode.BASIC, 0);
+    this(0);
   }
   
-  public InGameStateST(int id, Logger.Mode logMode, int numTowers) {
+  public InGameStateST(int id) {
     this.stateID = id;
     
-    this.numTowers = numTowers;
-
-    this.towerBallast = new LinkedList<Drawable>();
-    this.creepBallast = new LinkedList<Drawable>();
-    
     this.towers = new CopyOnWriteArrayList<Tower>();
-    this.creeps = new LinkedList<Creep>();
+    this.creeps = new CopyOnWriteArrayList<Creep>();
     this.deadCreeps = new ConcurrentLinkedQueue<Creep>();
     this.newCreeps = new ConcurrentLinkedQueue<Creep>();
 
     this.creepPositions = new Signal<CopyableList<Pipe<CopyableVector2f>>>(new CopyableList<Pipe<CopyableVector2f>>());
     
     this.tileSize = new Signal<CopyableDimension>(new CopyableDimension(1,1));
-    
-    this.logger = new Logger();
-    
-    this.logMode = logMode;
   }
 
   @Override
@@ -119,72 +94,18 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   @Override
   public void enter(GameContainer container, StateBasedGame game)
       throws SlickException {
+    CreepFactoryBehaviour.loadResources();
+    TowerFactoryBehaviour.loadResources();
+    
     try {
       this.map = new GameLevelST("test");
     } catch (SlickException e) {
       e.printStackTrace();
     }
     
-    this.elapsed = 0;
-
     this.updateThread = new Thread(this);
     
-    Stream dummyStream = new Stream();
-    Signal<CopyableVector2f> dummy = new Signal<CopyableVector2f>(new CopyableVector2f(1,1));
-
-    for (int i = 0; i < this.map.getHeight() * this.map.getWidth(); ++i) {
-      this.towerBallast.add(
-          new RenderBehaviour(
-              new Signal<CopyableBoolean>(new CopyableBoolean(true)),
-              dummy,
-              this.tileSize,
-              TowerFactoryBehaviour.getSprite(),
-              dummyStream));
-    }
-    
-    Signal<CopyableFloat> health = new Signal<CopyableFloat>(new CopyableFloat(1));
-    Sprite.SequencePoint[][] a = new Sprite.SequencePoint[4][];
-
-    for (int i = 0; i < 4; ++i) {
-      a[i] = new Sprite.SequencePoint[1];
-      for (int j = 0; j < 1; ++j) {
-        a[i][j] = new Sprite.SequencePoint((i * 4) + j, 0.25f);
-      }
-    }
-    
-    for (int i = 0; i < 1024; ++i) {
-      this.creepBallast.add(
-          new ActorRenderBehaviour(
-              new Signal<CopyableBoolean>(new CopyableBoolean(true)),
-              dummy,
-              dummy,
-              health,
-              health,
-              this.tileSize,
-              CreepFactoryBehaviour.getSprite(),
-              a,
-              dummyStream,
-              dummyStream));
-    }
-    
-    {
-    CopyablePoint dummypoint = new CopyablePoint(0,0);
-    Tower t = null;
-    for (int i = 0; i < this.numTowers; ++i) {
-      t = new Tower(dummypoint);
-      TowerFactoryBehaviour.createTower(dummypoint, this.creepPositions, t, this.tileSize, this);
-      this.towers.add(t);
-    }
-    }
-
-    this.logger.setLogMode(this.logMode);
-
-    this.dummyLogger = new Logger();
-    this.dummyLogger.setLogMode(this.logMode);
-
     if (this.getClass() == InGameStateST.class) {
-      this.logger.startLogging("SINGLETHREAD");
-      
       this.updateThread.start();
     }
   }
@@ -199,15 +120,8 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
       //Goggles
     }
 
-    this.dummyLogger = null;
-    
-    this.logger.stopLogging();
-    
     this.map = null;
 
-    this.towerBallast.clear();
-    this.creepBallast.clear();
-    
     this.towers.clear();
     this.creeps.clear();
     this.deadCreeps.clear();
@@ -217,21 +131,19 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   @Override
   public void render(GameContainer container, StateBasedGame game, Graphics g)
       throws SlickException {
-    for (int i = 0; i < this.towerBallast.size(); ++i) {
-      this.towerBallast.get(i).draw(g);
-    }
-    
-    for (int i = 0; i < this.creepBallast.size(); ++i) {
-      this.creepBallast.get(i).draw(g);
-    }
-    
     if (this.map != null) {
       this.tileSize.write(new CopyableDimension(container.getWidth() / this.map.getWidth(), container.getHeight() / this.map.getHeight()));
 
       this.map.render(container, g);
+      
+      for (Tower t : this.towers) {
+        t.draw(g);
+      }
+      
+      for (Creep c : this.creeps) {
+        c.draw(g);
+      }
     }
-    
-    this.logger.taskRun("Render");
   }
 
   @Override
@@ -253,9 +165,7 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
       }
     }
 
-    this.elapsed += delta/1000.0f;
-    
-    if (input.isKeyPressed(Input.KEY_ESCAPE) || this.elapsed >= 70.0f) {
+    if (input.isKeyPressed(Input.KEY_ESCAPE)) {
       game.enterState(BofSA.States.MAINMENU.ordinal());
     }
   }
@@ -263,36 +173,21 @@ public class InGameStateST implements Comparable<Object>, CreepManager, EventSin
   public void update(final float delta) {
     // Game logic
     
-    while (!this.newCreeps.isEmpty()) {
-      Creep c = this.newCreeps.poll();
-      this.creeps.add(c);
-    }
+    this.creeps.addAll(this.newCreeps);
+    this.newCreeps.clear();
     
     this.map.update(this, delta);
-    this.dummyLogger.taskRun("Spawn");
     
     for (final Tower t : this.towers) {
       t.call();
-      dummyLogger.taskRun("Attack");
-      dummyLogger.taskRun("Render");
     }
     
     for (final Creep c : this.creeps) {
       c.call();
-      dummyLogger.taskRun("Move");
-      dummyLogger.taskRun("Velocity");
-      dummyLogger.taskRun("Collision");
-      dummyLogger.taskRun("Waypoint");
-      dummyLogger.taskRun("Health");
-      dummyLogger.taskRun("Render");
     }
 
-    while (!this.deadCreeps.isEmpty()) {
-      Creep c = this.deadCreeps.poll();
-      this.creeps.remove(c);
-    }
-    
-    this.logger.taskRun("Update");
+    this.creeps.removeAll(this.deadCreeps);
+    this.deadCreeps.clear();
   }
 
   @Override

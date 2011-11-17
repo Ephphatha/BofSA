@@ -69,12 +69,12 @@ public class HealthBehaviour extends Behaviour<CopyableFloat> {
           hp -= damage.floatValue();
           
           if (hp <= 0.0f) {
-//           this.creepStream.handleEvent(
-//               new GenericEvent(
-//                   this,
-//                   GenericEvent.Message.DEATH,
-//                   Event.Type.BROADCAST,
-//                   e.time));
+           this.creepStream.handleEvent(
+               new GenericEvent(
+                   this,
+                   GenericEvent.Message.DEATH,
+                   Event.Type.BROADCAST,
+                   e.time));
             hp = 0;
          }
           

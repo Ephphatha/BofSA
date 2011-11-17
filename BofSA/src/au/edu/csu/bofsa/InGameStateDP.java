@@ -39,17 +39,15 @@ public class InGameStateDP extends InGameStateST {
 
   @SuppressWarnings("unused")
   private InGameStateDP() {
-    this(0, Integer.MAX_VALUE, Logger.Mode.BASIC, 0);
+    this(0, Integer.MAX_VALUE);
   }
   
-  public InGameStateDP(int id, int maxThreads, Logger.Mode logMode, int numTowers) {
-    super(id, logMode, numTowers);
+  public InGameStateDP(int id, int maxThreads) {
+    super(id);
     
     this.maxThreads = maxThreads;
 
     this.scheduler = new Scheduler();
-    
-    this.scheduler.setLogger(this.logger);
   }
 
   @Override
@@ -62,10 +60,8 @@ public class InGameStateDP extends InGameStateST {
       throws SlickException {
     super.enter(container, game);
     
-    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads - 2, this.logMode);
+    this.scheduler.start(Scheduler.Mode.UNORDERED, this.maxThreads - 2);
 
-    this.logger.startLogging("DATAPARALLEL", this.scheduler.numThreads());
-    
     this.updateThread.start();
   }
   
@@ -80,41 +76,26 @@ public class InGameStateDP extends InGameStateST {
   @Override
   public void update(final float delta) {
     // Game logic
-    
-    while (!this.newCreeps.isEmpty()) {
-      Creep c = this.newCreeps.poll();
-      this.creeps.add(c);
-    }
+
+    this.creeps.addAll(this.newCreeps);
+    this.newCreeps.clear();
     
     this.map.update(this, delta);
-    this.dummyLogger.taskRun("Spawn");
     
     for (Tower t : this.towers) {
       this.scheduler.call(t);
-      dummyLogger.taskRun("Attack");
-      dummyLogger.taskRun("Render");
     }
     
     this.waitForPendingTasks();
     
     for (Creep c : this.creeps) {
       this.scheduler.call(c);
-      dummyLogger.taskRun("Move");
-      dummyLogger.taskRun("Velocity");
-      dummyLogger.taskRun("Collision");
-      dummyLogger.taskRun("Waypoint");
-      dummyLogger.taskRun("Health");
-      dummyLogger.taskRun("Render");
     }
 
     this.waitForPendingTasks();
-    
-    while (!this.deadCreeps.isEmpty()) {
-      Creep c = this.deadCreeps.poll();
-      this.creeps.remove(c);
-    }
-    
-    this.logger.taskRun("Update");
+
+    this.creeps.removeAll(this.deadCreeps);
+    this.deadCreeps.clear();
   }
 
   private void waitForPendingTasks() {
